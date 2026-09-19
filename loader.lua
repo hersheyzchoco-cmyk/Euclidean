@@ -26,6 +26,7 @@ local poops = {
     [106947257450176] = "anime-dungeons.lua",
     [123913530595702] = "anime-dungeons.lua",
     [80761400409015] = "anime-dungeons.lua",
+    [84251136888781] = "anime-dungeons.lua",
     [70863683083739] = "anime-dungeons-lobby.lua",
     [85580552562948] = "anime-powerscaling-card-collection.lua",
     [126229277218112] = "anime-rng-battles.lua",
