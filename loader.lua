@@ -2,8 +2,6 @@ if not game:IsLoaded() then
     game.Loaded:Wait() 
 end
 
-task.wait(2)
-
 local poops = {
     [112231208081788] = "%2B1-wood-per-click.lua",
     [15744137588] = "%2B1-slayer-blade.lua",
