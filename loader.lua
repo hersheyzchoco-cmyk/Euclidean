@@ -68,6 +68,7 @@ local poops = {
     [112244246405144] = "my-fishing-anime.lua",
     [139546619723000] = "my-giant-sandwich.lua",
     [104065269680557] = "my-shrimp-farm.lua",
+    [101156262814037] = "my-stud-tycoon.lua",
     [108364799245223] = "my-sword-empire.lua",
     [79267089300389] = "my-wood-farm.lua",
     [131906518201863] = "own-a-cafe.lua",
