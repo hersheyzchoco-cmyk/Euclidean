@@ -48,6 +48,7 @@ local poops = {
     [8413545680] = "my-shrimp-farm.lua",
     [706743014] = "my-sword-empire.lua",
     [308844184] = "my-wood-farm.lua",
+    [719390069] = "open-sea-for-animals.lua",
     [1053923615] = "own-a-cafe.lua",
     [140648141] = "penguin-tycoon.lua",
     [286191944] = "place-the-keycaps.lua",
@@ -65,6 +66,8 @@ local poops = {
     [556965441] = "tnt-to-earths-core.lua",
     [383912360] = "zombie-turret-farm.lua"
 }
+
+
 
 local samegroup = {
     [102072869879193] = "anime-astral-simulator.lua",
