@@ -64,6 +64,7 @@ local poops = {
     [711432426] = "soccer-manager.lua",
     [831907229] = "spin-a-car.lua",
     [1071096739] = "spin-a-duel-monster.lua",
+    [74174827] = "steal-a-mystery-egg.lua",
     [116966728] = "steal-underwater-eggs.lua",
     [10185612] = "tap-incremental.lua",
     [380415714] = "throw-a-coin.lua",
