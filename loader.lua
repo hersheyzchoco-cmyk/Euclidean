@@ -56,6 +56,7 @@ local poops = {
     [286191944] = "place-the-keycaps.lua",
     [941101223] = "planet-rng.lua",
     [15904375] = "heroes-rng.lua",
+    [434582823] = "ride-a-pet.lua",
     [14444762] = "roll-a-pack.lua",
     [412698300] = "roll-anime-fighters.lua",
     [861213399] = "roll-to-defend.lua",
