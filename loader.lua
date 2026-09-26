@@ -64,13 +64,12 @@ local poops = {
     [711432426] = "soccer-manager.lua",
     [831907229] = "spin-a-car.lua",
     [1071096739] = "spin-a-duel-monster.lua",
+    [116966728] = "steal-underwater-eggs.lua",
     [10185612] = "tap-incremental.lua",
     [380415714] = "throw-a-coin.lua",
     [556965441] = "tnt-to-earths-core.lua",
     [383912360] = "zombie-turret-farm.lua"
 }
-
-
 
 local samegroup = {
     [102072869879193] = "anime-astral-simulator.lua",
