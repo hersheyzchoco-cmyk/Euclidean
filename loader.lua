@@ -28,6 +28,7 @@ local poops = {
     [1050787888] = "clean-the-squishies.lua",
     [192031578] = "crab-tycoon.lua",
     [416436258] = "crunch-my-butter.lua",
+    [42321785] = "defend-your-treehouse.lua",
     [5545660] = "dig-for-eggs.lua",
     [918842803] = "digimon-era.lua",
     [321593943] = "dungeon-leveling-origin.lua",
