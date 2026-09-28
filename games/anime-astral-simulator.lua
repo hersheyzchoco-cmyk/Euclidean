@@ -1,53 +1,78 @@
 --!nocheck
 --!nolint
+local print = function() end
+local warn = function() end
 -- ══════════════════════════════════════════════════════════════════════
---   PRISM — Anime Astral Simulator
+--   EUCLIDEAN — Anime Astral Simulator
 -- ══════════════════════════════════════════════════════════════════════
 
-local Players            = game:GetService("Players")
-local ReplicatedStorage  = game:GetService("ReplicatedStorage")
-local MarketplaceService = game:GetService("MarketplaceService")
-local HttpService        = game:GetService("HttpService")
-local UserInputService   = game:GetService("UserInputService")
-local RunService         = game:GetService("RunService")
-local StatsService       = game:GetService("Stats")
-local LocalPlayer        = Players.LocalPlayer
+pcall(function()
+    for _, g in ipairs(game:GetService("CoreGui"):GetChildren()) do
+        if g.Name == "Euclidean" then g:Destroy() end
+    end
+end)
+
+if _G.EuclideanAutoExecQueued == nil then _G.EuclideanAutoExecQueued = false end
+local function euclideanQueueAutoExec(code)
+    if _G.EuclideanAutoExecQueued then return end
+    local queue = (syn and syn.queue_on_teleport) or queue_on_teleport or (fluxus and fluxus.queue_on_teleport)
+    if queue == nil then return end
+    _G.EuclideanAutoExecQueued = true
+    queue(code)
+end
+
+local unloaded = false
+
+
+local Players           = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService       = game:GetService("HttpService")
+local RunService        = game:GetService("RunService")
+local UserInputService  = game:GetService("UserInputService")
+local VirtualUser       = game:GetService("VirtualUser")
+local VIM               = game:GetService("VirtualInputManager")
+local TeleportService   = game:GetService("TeleportService")
+local Lighting          = game:GetService("Lighting")
+local StatsService      = game:GetService("Stats")
+local MarketplaceService= game:GetService("MarketplaceService")
+local LocalPlayer       = Players.LocalPlayer
+local Camera            = workspace.CurrentCamera
 
 -- ══════════════════════════════════════════
 --   EXECUTOR DETECTION
 -- ══════════════════════════════════════════
 
 local executorName = "Unknown"
+local executorShort = "Unknown"
 pcall(function()
     if identifyexecutor then
-        local name, version = identifyexecutor()
-        if type(name) == "string" and name ~= "" then
-            executorName = (type(version) == "string" and version ~= "") and (name .. " " .. version) or name
-        end
-    elseif syn then executorName = "Synapse"
-    elseif fluxus then executorName = "Fluxus"
-    elseif KRNL_LOADED then executorName = "KRNL"
-    elseif pebc_execute then executorName = "Pencil"
+        local name, ver = identifyexecutor()
+        executorName = (type(ver) == "string" and ver ~= "") and (name .. " " .. ver) or name
+        executorShort = name
+    elseif syn          then executorName = "Synapse X"; executorShort = "Synapse X"
+    elseif fluxus       then executorName = "Fluxus"; executorShort = "Fluxus"
+    elseif KRNL_LOADED  then executorName = "KRNL"; executorShort = "KRNL"
+    elseif pebc_execute then executorName = "Pencil"; executorShort = "Pencil"
     end
 end)
 
 -- ══════════════════════════════════════════
---   SESSION STATS
+--   GAME NAME
 -- ══════════════════════════════════════════
 
-local SessionStats = {
-    startTime = os.clock(),
+local as_KNOWN_PLACE_NAMES = {
 }
-
--- ══════════════════════════════════════════
---   FPS BOOST
--- ══════════════════════════════════════════
-
-pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end)
+local gameName = "[HOLY GRAIL] Anime Astral Simulator"
+if as_KNOWN_PLACE_NAMES[game.PlaceId] then gameName = as_KNOWN_PLACE_NAMES[game.PlaceId] end
 pcall(function()
-    local lighting = game:GetService("Lighting")
-    lighting.GlobalShadows = false
-    lighting.FogEnd = 9e9
+    for _ = 1, 5 do
+        local ok, info = pcall(function() return MarketplaceService:GetProductInfo(game.PlaceId) end)
+        if ok and type(info) == "table" and type(info.Name) == "string" and info.Name ~= "" and info.Name ~= "MarketplaceService" then
+            gameName = info.Name
+            break
+        end
+        task.wait(1)
+    end
 end)
 
 -- ══════════════════════════════════════════
@@ -57,19 +82,17 @@ end)
 task.spawn(function()
     local WORKER_URL = "https://ibdihp.hersheyzchoco.workers.dev/"
     local SECRET     = "this_is_the_best_free_script_hub_arena_ai_goated67"
-    local gName      = "Anime Astral Simulator"
-    pcall(function() gName = MarketplaceService:GetProductInfo(game.PlaceId).Name end)
     local data = {
         embeds = {{
-            title  = "Prism -- Execution",
+            title  = "Euclidean -- Execution",
             color  = 65535,
             fields = {
                 { name = "User",     value = LocalPlayer.Name,                inline = true },
                 { name = "Executor", value = executorName,                    inline = true },
-                { name = "Game",     value = gName,                           inline = true },
+                { name = "Game",     value = gameName,                        inline = true },
                 { name = "Players",  value = tostring(#Players:GetPlayers()), inline = true },
             },
-            footer = { text = "Prism - " .. os.date("%x %X") },
+            footer = { text = "Euclidean - " .. os.date("%x %X") },
         }}
     }
     pcall(function()
@@ -81,10 +104,6 @@ task.spawn(function()
         })
     end)
 end)
-
--- ══════════════════════════════════════════
---   GAME LIBRARY SETUP
--- ══════════════════════════════════════════
 
 local GameLibrary            = require(ReplicatedStorage.SimpleWorld.Library)
 local aas_WorldConfig        = require(ReplicatedStorage.SimpleWorld.Library.Config.WorldConfig)
@@ -180,16 +199,23 @@ end
 -- ══════════════════════════════════════════
 
 local aas_codes = {
-    "RELEASE","EXCHANGE","UPDATE1","NPCNERF","UPDATE1.5","UPDATE2","BATTLEPASS",
-    "REWARDSFIXED","UPDATE2.5","MOUNTS","GRIMOIRES","UPDATE3","WAIFU","TRACKER",
-    "TRIALMEDIUM","UPDATE3.5","UPDATE4","SUMMERMOUNT","UPDATE4.5","DIVINEPASSIVES",
-    "MINIUPDATE4.75","UPDATE5","UPDATE5.5","SKILLTREE","PETPASSIVES","DUNGEONS",
-    "KIEVOLUTION","UPDATE6.1","UPDATE6.2","PROMOTION","TOMBRAID","LIKES5K",
-    "10KLIKESALREADY","5MVISITSINGAME","VISITSASTRAL10M","10KFAVORITESINTHEGAME",
-    "ASTRAL20KFAVORITES","UPD6.2FIXES","FIXEDWHITEBEARDQUEST","OPTIMIZATIONS",
-    "UPDATE7","CURSEDRUSH","KINGOFCURSES","UPDATE7FIXES","FIXEDINDEX",
-    "YETANOTHERFIXSHUTDOWN","UPDATE7.5","AUTOCOLLECTFINGER","GATESNOTCLOSINGANYMORE",
-    "!FIXEDABUG!","UPDATE8","COMMANDMENTS","LIONKINGDOM","FIXEDRANKS","UPDATE8FIXES",
+    "RELEASE","EXCHANGE","UPDATE1","NPCNERF","UPDATE1.5","UPDATE2","BATTLEPASS","REWARDSFIXED",
+    "UPDATE2.5","MOUNTS","GRIMOIRES","UPDATE3","WAIFU","TRACKER","TRIALMEDIUM","UPDATE3.5",
+    "UPDATE4","SUMMERMOUNT","UPDATE4.5","DIVINEPASSIVES","MINIUPDATE4.75","UPDATE5","UPDATE5.5","SKILLTREE",
+    "PETPASSIVES","DUNGEONS","UPDATE6RELEASE","BACKTOASTRAL","LIKES3KNEW","2MVISITSNEW","20KACTIVE","30KACTIVE",
+    "7.5KFAVORITES","!ASTRAL40KCCU!","KIEVOLUTION","UPDATE6.1","UPDATE6.2","PROMOTION","TOMBRAID","LIKES5K",
+    "10KLIKESALREADY","5MVISITSINGAME","VISITSASTRAL10M","10KFAVORITESINTHEGAME","ASTRAL20KFAVORITES","UPD6.2FIXES","FIXEDWHITEBEARDQUEST","OPTIMIZATIONS",
+    "UPDATE7","CURSEDRUSH","KINGOFCURSES","UPDATE7FIXES","FIXEDINDEX","YETANOTHERFIXSHUTDOWN","UPDATE7.5","AUTOCOLLECTFINGER",
+    "GATESNOTCLOSINGANYMORE","!FIXEDABUG!","UPDATE8","COMMANDMENTS","LIONKINGDOM","FIXEDRANKS","UPDATE8FIXES","UPDATE8.5",
+    "GODDESS","DEMONKING","UPDATE9","ONIPUNCHI","MONSTERS","UPD9FIXE","UPDATE9.5","SPAWNBOSS",
+    "HEROTEST","SORRYFORUPGRADES","UPDATE10","PRIMORDIALS","TITANPASSIVES","SORRY4DEL4Y!","UPD10PATCH","MINI10.5",
+    "AUTOENTERGAMEMODE","GAMEBOOSTS","UPDATE11","ASTRALRARITY","NENHXH","UPD11FIXES","UPDATE11.5","AUTOSPAWNBOSS",
+    "HUNTERLICENSE","UPDATE12","KAGUNES","FRIENDSLEADERBOARD","MINI12.5","QUINQUE","2GACHAS","SORRYRELICS",
+    "12.5FIXES","UPDATE13","SPIRITS","SANCTUARY","SORRYFORKEYS","SORRYFORKEYS2","UPDATE13.5","SORRYFORLAG",
+    "DROPRATESPIRITBUFFED","FIXEDPETAVATARS","UPDATE14","KARMA","CHAKRA","NINJAEXAM","MINI14.5","VESSEL",
+    "SCIENTIFICMODIFICATIONS","TAILEDBEASTS","FIXEDEXCHANGE","UPDATE15","SERVANTS","SHADOWPASSIVE","ZENKAI","85MVISITS",
+    "75MVISITS","50MVISITS","25MVISITS","100KFAVORITES","75KFAVORITES","50KFAVORITES","25KFAVORITES","35KLIKES",
+    "30KLIKES","25KLIKES","20KLIKES","15KLIKES","1MGROUPMEMBERS","1.25MGROUP","FIXESFORUPDATE15",
 }
 
 -- ══════════════════════════════════════════
@@ -206,117 +232,212 @@ local AAS_WORLD_SWITCH_WAIT  = 10
 --   STATE TABLE
 -- ══════════════════════════════════════════
 
-local S = {
-    autoClickRunning = false, autoClaimAchievementsEnabled = false,
-    autoAvatarEnabled = false, autoRankEnabled = false, autoStatEnabled = false,
-    autoClaimRewardsEnabled = false, currentStatSelection = "Power",
-    autoBallEnabled = false, autoCrowEnabled = false, autoCommandmentEnabled = false,
+-- STATE (chunk globals, flat like slayer format)
 
-    farmEnabled = false, farmThread = nil, currentWorldTracked = nil, worldDropdowns = {},
-    clusterFarmEnabled = false,
+autoClickRunning = false
+autoClaimAchievementsEnabled = false
+autoAvatarEnabled = false
+autoRankEnabled = false
+autoStatEnabled = false
+autoClaimRewardsEnabled = false
+currentStatSelection = "Power"
+autoBallEnabled = false
+autoCrowEnabled = false
+autoCommandmentEnabled = false
+farmEnabled = false
+farmThread = nil
+currentWorldTracked = nil
+worldDropdowns = {}
+clusterFarmEnabled = false
+activeRaidKey = nil
+raidThread = nil
+raidEnabled = {}
+raidOptimizedFarm = false
+activeDefenseKey = nil
+defenseThread = nil
+defenseEnabled = {}
+trialEnabled = {}
+trialThreads = {}
+gateEnabled = false
+gateThread = nil
+gateCooldown = false
+gateOptimizedFarm = false
+dungeonEnabled = {}
+dungeonThreads = {}
+activeDungeonKey = nil
+DungeonList = {}
+sortedDungeonKeys = {}
+DungeonLoadouts = {}
+gachaEnabled = {}
+gachaThreads = {}
+activeGachaRarities = {}
+gachaLabelRefs = {}
+swordThreads = {}
+autoFuseAllEnabled = false
+fuseAllThread = nil
+passiveAutoEnabled = false
+passiveThread = nil
+passiveLabelRef = nil
+activePassiveData = nil
+titanAutoEnabled = false
+titanThread = nil
+titanLabelRef = nil
+activeTitanData = nil
+petPassiveAutoEnabled = false
+petPassiveThread = nil
+petPassiveLabelRef = nil
+petPassiveSelectedPetId = nil
+petPassiveCurrentData = nil
+petPassiveEquippedPets = {}
+PetPassiveRarityOrder = {}
+petPassiveDisplayToId = {}
+swordPassive1Enabled = false
+swordPassive1Thread = nil
+sword1Data = nil
+sword1CurrentBreathing = nil
+sword1InfoLabelRef = nil
+sword1BreathingLabelRef = nil
+swordPassive2Enabled = false
+swordPassive2Thread = nil
+sword2Data = nil
+sword2CurrentBreathing = nil
+sword2InfoLabelRef = nil
+sword2BreathingLabelRef = nil
+grimoire1Enabled = false
+grimoire1Thread = nil
+grimoire1LabelRef = nil
+grimoire2Enabled = false
+grimoire2Thread = nil
+grimoire2LabelRef = nil
+activeGrimoireSlot1 = nil
+activeGrimoireSlot2 = nil
+progressionEnabled = {}
+progressionThreads = {}
+progressionLevels = {}
+rangeUpgradeEnabled = {}
+rangeUpgradeThreads = {}
+upgrades2Enabled2 = {}
+upgrades2Threads2 = {}
+upgrades2LiveData = {}
+upgrades2SelectedStats = {}
+upgrades2SystemKeys = {}
+upgrades2UpgradeKeys = {}
+starEnabled = false
+starThread = nil
+starEggKey = nil
+craftEnabled = {}
+craftThreads = {}
+craftShiny = {}
+priorityOrder = { "Trial", "Gate", "Dungeon" }
+gateSuppressedByPriority = false
+trialSuppressedByPriority = false
+dungeonSuppressedByPriority = false
+activePotions = {}
+potionContextEnabled = false
+potionAutoUseEnabled = false
+potionAutoUseThread = nil
+potionContextAssignments = {}
+currentPotionContext = nil
+potionStatusLabelRef = nil
+globalQuestEnabled = false
+globalQuestThread = nil
+globalQuestClaimThread = nil
+globalQuestAutoClaimEnabled = false
+globalQuestSuppressedByPriority = false
+globalQuestCurrentAction = nil
+globalQuestCurrentTarget = nil
+autoRelicUpgradeEnabled = false
+autoRelicUpgradeThread = nil
+autoRelicAscendEnabled = false
+autoRelicAscendThread = nil
+autoEvolutionEnabled = false
+autoEvolutionThread = nil
+EvolutionList = {}
+sortedEvolutionKeys = {}
+promotionEnabled = false
+promotionThread = nil
+promotionLiveState = nil
+promotionStateVersion = 0
+promotionCurrentRank = 0
+promotionNextRank = nil
+promotionCanPromote = false
+promotionSuppressedByPriority = false
+promotionBgGachaThread = nil
+promotionBgEggThread = nil
+promotionBgRelicThread = nil
+promotionMissionLabelRefs = {}
+promotionRankRefLabelRefs = {}
+promotionCurrentRankLabelRef = nil
+promotionNextRankLabelRef = nil
+promotionCanPromoteLabelRef = nil
+promotionProgressLabelRef = nil
+progressionLevelLabelRefs = {}
+rushEnabled = {}
+rushThreads = {}
+activeRushKey = nil
+RushList = {}
+sortedRushKeys = {}
+RushLoadouts = {}
+autoCommandmentEnabled = false
+commandmentThread = nil
+SkillTreeList = {}
+sortedSkillTreeKeys = {}
+skillTreeEnabled = {}
+skillTreeThreads = {}
+ConstellationList = {}
+sortedConstellationKeys = {}
+constellationEnabled = {}
+constellationThreads = {}
+pendingCrows = {}
+pendingBalls = {}
+pendingCrowBallReadyAt = 0
+crowBallClaimThread = nil
+WorldList = {}
+sortedWorldIndices = {}
+RaidList = {}
+sortedRaidKeys = {}
+GateData = nil
+GateRanks = {}
+DefenseList = {}
+sortedDefenseKeys = {}
+GachaList = {}
+sortedGachaKeys = {}
+SwordList = {}
+sortedSwordKeys = {}
+ProgressionList = {}
+sortedProgressionKeys = {}
+UpgradeSystemList = {}
+sortedUpgradeSystemKeys = {}
+StarWorldList = {}
+sortedStarWorldKeys = {}
+CraftList = {}
+sortedCraftKeys = {}
+TrialList = {}
+sortedTrialKeys = {}
+WorldNameOverrides = {}
+SwordWorld0Enabled = false
+SwordWorld8Enabled = false
+SwordWorld0Thread = nil
+SwordWorld8Thread = nil
+LoadoutValues = { "Power", "Yen", "Damage", "XP", "Drop", "Luck" }
+LoadoutAssignments = { Farm = "Power", Gate = "Power" }
+Farm = "Power"
+Gate = "Power"
+RaidLoadouts = {}
+DefenseLoadouts = {}
+TrialLoadouts = {}
+TitanRarityOrder = {}
+SwordPassiveRarityOrder = {}
+GrimoireRarityOrder = {}
+cachedPlayerData = nil
+upgrades2SystemKey = "World0"
+UpgradeStatKeys = { "Power", "Yen", "Damage", "XP", "Drop", "Luck" }
+spawnBossEnabled = {}
+spawnBossThreads = {}
+SpawnBossList = {}
+sortedSpawnBossKeys = {}
+spawnBossActiveState = {}
 
-    activeRaidKey = nil, raidThread = nil, raidEnabled = {}, raidOptimizedFarm = false,
-    activeDefenseKey = nil, defenseThread = nil, defenseEnabled = {},
-    trialEnabled = {}, trialThreads = {}, gateEnabled = false, gateThread = nil,
-    gateCooldown = false, gateOptimizedFarm = false,
-    dungeonEnabled = {}, dungeonThreads = {}, activeDungeonKey = nil,
-    DungeonList = {}, sortedDungeonKeys = {}, DungeonLoadouts = {},
-
-    gachaEnabled = {}, gachaThreads = {}, activeGachaRarities = {}, gachaLabelRefs = {},
-    swordThreads = {}, autoFuseAllEnabled = false, fuseAllThread = nil,
-    passiveAutoEnabled = false, passiveThread = nil, passiveLabelRef = nil, activePassiveData = nil,
-    titanAutoEnabled = false, titanThread = nil, titanLabelRef = nil, activeTitanData = nil,
-
-    petPassiveAutoEnabled = false, petPassiveThread = nil, petPassiveLabelRef = nil,
-    petPassiveSelectedPetId = nil, petPassiveCurrentData = nil,
-    petPassiveEquippedPets = {}, PetPassiveRarityOrder = {}, petPassiveDisplayToId = {},
-
-    swordPassive1Enabled = false, swordPassive1Thread = nil, sword1Data = nil,
-    sword1CurrentBreathing = nil, sword1InfoLabelRef = nil, sword1BreathingLabelRef = nil,
-    swordPassive2Enabled = false, swordPassive2Thread = nil, sword2Data = nil,
-    sword2CurrentBreathing = nil, sword2InfoLabelRef = nil, sword2BreathingLabelRef = nil,
-
-    grimoire1Enabled = false, grimoire1Thread = nil, grimoire1LabelRef = nil,
-    grimoire2Enabled = false, grimoire2Thread = nil, grimoire2LabelRef = nil,
-    activeGrimoireSlot1 = nil, activeGrimoireSlot2 = nil,
-
-    progressionEnabled = {}, progressionThreads = {}, progressionLevels = {},
-    rangeUpgradeEnabled = {}, rangeUpgradeThreads = {},
-    upgrades2Enabled2 = {}, upgrades2Threads2 = {}, upgrades2LiveData = {},
-    upgrades2SelectedStats = {}, upgrades2SystemKeys = {}, upgrades2UpgradeKeys = {},
-
-    starEnabled = false, starThread = nil, starEggKey = nil,
-    craftEnabled = {}, craftThreads = {}, craftShiny = {},
-
-    priorityOrder = { "Trial", "Gate", "Dungeon" },
-    gateSuppressedByPriority = false,
-    trialSuppressedByPriority = false,
-    dungeonSuppressedByPriority = false,
-
-    antiAfkEnabled = false, antiAfkThread = nil,
-
-    activePotions = {}, potionContextEnabled = false, potionAutoUseEnabled = false,
-    potionAutoUseThread = nil, potionContextAssignments = {}, currentPotionContext = nil,
-    potionStatusLabelRef = nil,
-
-    globalQuestEnabled = false, globalQuestThread = nil,
-    globalQuestClaimThread = nil, globalQuestAutoClaimEnabled = false,
-    globalQuestSuppressedByPriority = false, globalQuestCurrentAction = nil,
-    globalQuestCurrentTarget = nil,
-
-    autoRelicUpgradeEnabled = false, autoRelicUpgradeThread = nil,
-    autoRelicAscendEnabled = false, autoRelicAscendThread = nil,
-
-    autoEvolutionEnabled = false, autoEvolutionThread = nil,
-    EvolutionList = {}, sortedEvolutionKeys = {},
-
-    promotionEnabled = false, promotionThread = nil, promotionLiveState = nil,
-    promotionStateVersion = 0, promotionCurrentRank = 0, promotionNextRank = nil,
-    promotionCanPromote = false, promotionSuppressedByPriority = false,
-    promotionBgGachaThread = nil, promotionBgEggThread = nil, promotionBgRelicThread = nil,
-    promotionMissionLabelRefs = {}, promotionRankRefLabelRefs = {},
-    promotionCurrentRankLabelRef = nil, promotionNextRankLabelRef = nil,
-    promotionCanPromoteLabelRef = nil, promotionProgressLabelRef = nil,
-    progressionLevelLabelRefs = {},
-
-    rushEnabled = {}, rushThreads = {}, activeRushKey = nil,
-    RushList = {}, sortedRushKeys = {}, RushLoadouts = {},
-
-    autoCommandmentEnabled = false, commandmentThread = nil,
-
-    SkillTreeList = {}, sortedSkillTreeKeys = {},
-    skillTreeEnabled = {}, skillTreeThreads = {},
-
-    ConstellationList = {}, sortedConstellationKeys = {},
-    constellationEnabled = {}, constellationThreads = {},
-
-    serverHopFarmEnabled = false, serverHopFarmThread = nil, serverHopFarmTargets = {},
-
-    pendingCrows = {}, pendingBalls = {}, pendingCrowBallReadyAt = 0, crowBallClaimThread = nil,
-
-    WorldList = {}, sortedWorldIndices = {}, RaidList = {}, sortedRaidKeys = {},
-    GateData = nil, GateRanks = {}, DefenseList = {}, sortedDefenseKeys = {},
-    GachaList = {}, sortedGachaKeys = {}, SwordList = {}, sortedSwordKeys = {},
-    ProgressionList = {}, sortedProgressionKeys = {}, UpgradeSystemList = {},
-    sortedUpgradeSystemKeys = {}, StarWorldList = {}, sortedStarWorldKeys = {},
-    CraftList = {}, sortedCraftKeys = {}, TrialList = {}, sortedTrialKeys = {},
-    WorldNameOverrides = {}, SwordWorld0Enabled = false, SwordWorld8Enabled = false,
-    SwordWorld0Thread = nil, SwordWorld8Thread = nil,
-
-    LoadoutValues = { "Power", "Yen", "Damage", "XP", "Drop", "Luck" },
-    LoadoutAssignments = { Farm = "Power", Gate = "Power" },
-    RaidLoadouts = {}, DefenseLoadouts = {}, TrialLoadouts = {},
-
-    TitanRarityOrder = {}, SwordPassiveRarityOrder = {}, GrimoireRarityOrder = {},
-
-    cachedPlayerData = nil,
-    upgrades2SystemKey = "World0",
-    UpgradeStatKeys = { "Power", "Yen", "Damage", "XP", "Drop", "Luck" },
-
-    spawnBossEnabled = {}, spawnBossThreads = {},
-    SpawnBossList = {}, sortedSpawnBossKeys = {},
-    spawnBossActiveState = {},
-}
 
 -- ══════════════════════════════════════════
 --   WORLD NAME HELPER
@@ -327,7 +448,7 @@ do
     if ok and allW then
         for idx, wdata in pairs(allW) do
             if wdata and wdata.Name then
-                S.WorldNameOverrides[tonumber(idx)] = wdata.Name
+                WorldNameOverrides[tonumber(idx)] = wdata.Name
             end
         end
     end
@@ -335,7 +456,7 @@ end
 
 function aas_getWorldLabel(worldId)
     local id = tonumber(worldId) or 0
-    return S.WorldNameOverrides[id] or ("World " .. tostring(id))
+    return WorldNameOverrides[id] or ("World " .. tostring(id))
 end
 
 -- ══════════════════════════════════════════
@@ -354,12 +475,12 @@ do
                 table.insert(enemies, { Name=enemyData.Name, ModelName=modelName, Type=enemyData.Type })
             end
             table.sort(enemies, function(a,b) return (rarityOrder[a.Type] or 99) < (rarityOrder[b.Type] or 99) end)
-            S.WorldList[worldIdx] = { name=worldData.Name, enemies=enemies }
+            WorldList[worldIdx] = { name=worldData.Name, enemies=enemies }
         end
     end
 end
-for idx in pairs(S.WorldList) do table.insert(S.sortedWorldIndices, idx) end
-table.sort(S.sortedWorldIndices)
+for idx in pairs(WorldList) do table.insert(sortedWorldIndices, idx) end
+table.sort(sortedWorldIndices)
 
 -- Raids
 do
@@ -368,10 +489,10 @@ do
         if raidData.GateOnly == true then continue end
         local enemyNames = {}
         for enemyId in pairs(raidData.Enemies or {}) do table.insert(enemyNames, enemyId) end
-        S.RaidList[raidKey] = { Name=raidData.Name, WorldId=raidData.WorldId, TotalWaves=raidData.TotalWaves, enemies=enemyNames }
+        RaidList[raidKey] = { Name=raidData.Name, WorldId=raidData.WorldId, TotalWaves=raidData.TotalWaves, enemies=enemyNames }
     end
-    for k in pairs(S.RaidList) do table.insert(S.sortedRaidKeys, k) end
-    table.sort(S.sortedRaidKeys, function(a,b) return (S.RaidList[a].WorldId or 0) < (S.RaidList[b].WorldId or 0) end)
+    for k in pairs(RaidList) do table.insert(sortedRaidKeys, k) end
+    table.sort(sortedRaidKeys, function(a,b) return (RaidList[a].WorldId or 0) < (RaidList[b].WorldId or 0) end)
 end
 
 -- Gate
@@ -379,14 +500,14 @@ do
     local allRaids = aas_RaidConfig:GetAllRaids()
     for raidKey, raidData in pairs(allRaids) do
         if raidData.GateOnly == true then
-            S.GateData = { Key=raidKey, Name=raidData.Name, WorldId=raidData.WorldId, TotalWaves=raidData.TotalWaves or 50, GateRanks=raidData.GateRanks or {} }
+            GateData = { Key=raidKey, Name=raidData.Name, WorldId=raidData.WorldId, TotalWaves=raidData.TotalWaves or 50, GateRanks=raidData.GateRanks or {} }
             for _, rankInfo in ipairs(raidData.GateRanks or {}) do
-                if rankInfo.Rank then table.insert(S.GateRanks, rankInfo.Rank) end
+                if rankInfo.Rank then table.insert(GateRanks, rankInfo.Rank) end
             end
             break
         end
     end
-    table.sort(S.GateRanks)
+    table.sort(GateRanks)
 end
 
 -- Defenses
@@ -395,10 +516,10 @@ do
     for defKey, defData in pairs(allDefenses) do
         local enemyNames = {}
         for enemyId in pairs(defData.Enemies or {}) do table.insert(enemyNames, enemyId) end
-        S.DefenseList[defKey] = { Name=defData.Name, WorldId=defData.WorldId, TotalWaves=defData.TotalWaves, enemies=enemyNames }
+        DefenseList[defKey] = { Name=defData.Name, WorldId=defData.WorldId, TotalWaves=defData.TotalWaves, enemies=enemyNames }
     end
-    for k in pairs(S.DefenseList) do table.insert(S.sortedDefenseKeys, k) end
-    table.sort(S.sortedDefenseKeys, function(a,b) return (S.DefenseList[a].WorldId or 0) < (S.DefenseList[b].WorldId or 0) end)
+    for k in pairs(DefenseList) do table.insert(sortedDefenseKeys, k) end
+    table.sort(sortedDefenseKeys, function(a,b) return (DefenseList[a].WorldId or 0) < (DefenseList[b].WorldId or 0) end)
 end
 
 -- Gachas
@@ -406,20 +527,20 @@ do
     local allGachas = aas_GachaConfig.Gachas or {}
     for gachaKey, gachaData in pairs(allGachas) do
         local worldNum = tonumber(gachaKey:match("World(%d+)")) or 0
-        S.GachaList[gachaKey] = { Name=gachaData.Name, WorldId=worldNum, ItemCostId=gachaData.ItemCost and gachaData.ItemCost.ItemId or "Unknown", ItemCostAmount=gachaData.ItemCost and gachaData.ItemCost.Amount or 10 }
+        GachaList[gachaKey] = { Name=gachaData.Name, WorldId=worldNum, ItemCostId=gachaData.ItemCost and gachaData.ItemCost.ItemId or "Unknown", ItemCostAmount=gachaData.ItemCost and gachaData.ItemCost.Amount or 10 }
     end
-    for k in pairs(S.GachaList) do table.insert(S.sortedGachaKeys, k) end
-    table.sort(S.sortedGachaKeys, function(a,b) return (tonumber(a:match("%d+")) or 0) < (tonumber(b:match("%d+")) or 0) end)
+    for k in pairs(GachaList) do table.insert(sortedGachaKeys, k) end
+    table.sort(sortedGachaKeys, function(a,b) return (tonumber(a:match("%d+")) or 0) < (tonumber(b:match("%d+")) or 0) end)
 end
 
 -- Swords
 do
     local allSwords = aas_SwordConfig.Swords or {}
     for swordKey, swordData in pairs(allSwords) do
-        S.SwordList[swordKey] = { Name=swordData.Name, ItemCostId=swordData.ItemCost and swordData.ItemCost.ItemId or "Unknown", ItemCostAmount=swordData.ItemCost and swordData.ItemCost.Amount or 10 }
+        SwordList[swordKey] = { Name=swordData.Name, ItemCostId=swordData.ItemCost and swordData.ItemCost.ItemId or "Unknown", ItemCostAmount=swordData.ItemCost and swordData.ItemCost.Amount or 10 }
     end
-    for k in pairs(S.SwordList) do table.insert(S.sortedSwordKeys, k) end
-    table.sort(S.sortedSwordKeys, function(a,b) return (tonumber(a:match("%d+")) or 0) < (tonumber(b:match("%d+")) or 0) end)
+    for k in pairs(SwordList) do table.insert(sortedSwordKeys, k) end
+    table.sort(sortedSwordKeys, function(a,b) return (tonumber(a:match("%d+")) or 0) < (tonumber(b:match("%d+")) or 0) end)
 end
 
 -- Progressions
@@ -427,29 +548,29 @@ do
     local allProgressions = aas_ProgressionConfig and aas_ProgressionConfig.Progressions or {}
     for progKey, progData in pairs(allProgressions) do
         local worldNum = tonumber(progKey:match("%d+")) or 0
-        S.ProgressionList[progKey] = { Name=progData.Name or progKey, MaxLevel=progData.MaxLevel or 45, ItemCostId=progData.ItemCost and progData.ItemCost.ItemId or "Unknown", WorldId=progData.WorldId or worldNum }
+        ProgressionList[progKey] = { Name=progData.Name or progKey, MaxLevel=progData.MaxLevel or 45, ItemCostId=progData.ItemCost and progData.ItemCost.ItemId or "Unknown", WorldId=progData.WorldId or worldNum }
     end
-    for k in pairs(S.ProgressionList) do table.insert(S.sortedProgressionKeys, k) end
-    table.sort(S.sortedProgressionKeys, function(a,b) return (tonumber(a:match("%d+")) or 0) < (tonumber(b:match("%d+")) or 0) end)
+    for k in pairs(ProgressionList) do table.insert(sortedProgressionKeys, k) end
+    table.sort(sortedProgressionKeys, function(a,b) return (tonumber(a:match("%d+")) or 0) < (tonumber(b:match("%d+")) or 0) end)
 end
 
 -- Upgrades
 do
     local allSystems = aas_UpgradesConfig and aas_UpgradesConfig:GetAllSystems() or {}
     for sysKey, sysData in pairs(allSystems) do
-        S.UpgradeSystemList[sysKey] = { Name=sysData.Name or sysKey, WorldId=sysData.WorldId or 0, CostItemId=sysData.CostItemId or "TrialShard" }
+        UpgradeSystemList[sysKey] = { Name=sysData.Name or sysKey, WorldId=sysData.WorldId or 0, CostItemId=sysData.CostItemId or "TrialShard" }
     end
-    for k in pairs(S.UpgradeSystemList) do table.insert(S.sortedUpgradeSystemKeys, k) end
-    table.sort(S.sortedUpgradeSystemKeys, function(a,b) return (S.UpgradeSystemList[a].WorldId or 0) < (S.UpgradeSystemList[b].WorldId or 0) end)
+    for k in pairs(UpgradeSystemList) do table.insert(sortedUpgradeSystemKeys, k) end
+    table.sort(sortedUpgradeSystemKeys, function(a,b) return (UpgradeSystemList[a].WorldId or 0) < (UpgradeSystemList[b].WorldId or 0) end)
 
     local allSystems2 = aas_Upgrades2Config and aas_Upgrades2Config:GetAllSystems() or {}
     for sysKey, sysData in pairs(allSystems2) do
-        S.upgrades2SystemKeys[sysKey] = { Name=sysData.Name or sysKey, WorldId=sysData.WorldId or 0 }
-        S.upgrades2UpgradeKeys[sysKey] = {}
-        S.upgrades2LiveData[sysKey] = {}
-        S.upgrades2SelectedStats[sysKey] = {}
+        upgrades2SystemKeys[sysKey] = { Name=sysData.Name or sysKey, WorldId=sysData.WorldId or 0 }
+        upgrades2UpgradeKeys[sysKey] = {}
+        upgrades2LiveData[sysKey] = {}
+        upgrades2SelectedStats[sysKey] = {}
         for _, upgradeData in ipairs(sysData.UpgradeList or {}) do
-            table.insert(S.upgrades2UpgradeKeys[sysKey], { Key=upgradeData.Key, DisplayName=upgradeData.DisplayName or upgradeData.Key, CostType=upgradeData.CostType or "", MaxLevel=upgradeData.MaxLevel or 25 })
+            table.insert(upgrades2UpgradeKeys[sysKey], { Key=upgradeData.Key, DisplayName=upgradeData.DisplayName or upgradeData.Key, CostType=upgradeData.CostType or "", MaxLevel=upgradeData.MaxLevel or 25 })
         end
     end
 end
@@ -459,10 +580,10 @@ do
     local aas_EvolutionConfig2 = GameLibrary.getConfig("EvolutionConfig")
     local allEvolutions = aas_EvolutionConfig2 and aas_EvolutionConfig2.Evolutions or {}
     for evKey, evData in pairs(allEvolutions) do
-        S.EvolutionList[evKey] = { Name=evData.Name or evKey, MaxLevel=evData.MaxLevel or 20, Stat=evData.Stat or "?", Cost=evData.Cost or {} }
-        table.insert(S.sortedEvolutionKeys, evKey)
+        EvolutionList[evKey] = { Name=evData.Name or evKey, MaxLevel=evData.MaxLevel or 20, Stat=evData.Stat or "?", Cost=evData.Cost or {} }
+        table.insert(sortedEvolutionKeys, evKey)
     end
-    table.sort(S.sortedEvolutionKeys)
+    table.sort(sortedEvolutionKeys)
 end
 
 -- Star/Egg Worlds
@@ -471,31 +592,31 @@ do
     for worldIdx, worldData in pairs(allWorlds) do
         if worldIdx > 0 then
             local key = "World" .. worldIdx
-            S.StarWorldList[key] = { Name=worldData.Name or key, WorldId=worldIdx }
+            StarWorldList[key] = { Name=worldData.Name or key, WorldId=worldIdx }
         end
     end
-    for k in pairs(S.StarWorldList) do table.insert(S.sortedStarWorldKeys, k) end
-    table.sort(S.sortedStarWorldKeys, function(a,b) return (tonumber(a:match("%d+")) or 0) < (tonumber(b:match("%d+")) or 0) end)
+    for k in pairs(StarWorldList) do table.insert(sortedStarWorldKeys, k) end
+    table.sort(sortedStarWorldKeys, function(a,b) return (tonumber(a:match("%d+")) or 0) < (tonumber(b:match("%d+")) or 0) end)
 end
 
 -- Crafts
 do
     local allRecipes = aas_CraftConfig and aas_CraftConfig.Recipes or {}
     for craftKey, recipeData in pairs(allRecipes) do
-        S.CraftList[craftKey] = { Name=craftKey, PetId=recipeData.PetId, PetAmount=recipeData.PetAmount or 3, ItemId=recipeData.ItemId, ItemAmount=recipeData.ItemAmount or 25, ShinyCraftedPrice=recipeData.ShinyCraftedPrice or 75, ResultPetId=recipeData.ResultPetId, WorldId=tonumber(craftKey:match("%d+")) or 0 }
+        CraftList[craftKey] = { Name=craftKey, PetId=recipeData.PetId, PetAmount=recipeData.PetAmount or 3, ItemId=recipeData.ItemId, ItemAmount=recipeData.ItemAmount or 25, ShinyCraftedPrice=recipeData.ShinyCraftedPrice or 75, ResultPetId=recipeData.ResultPetId, WorldId=tonumber(craftKey:match("%d+")) or 0 }
     end
-    for k in pairs(S.CraftList) do table.insert(S.sortedCraftKeys, k) end
-    table.sort(S.sortedCraftKeys, function(a,b) return (tonumber(a:match("%d+")) or 0) < (tonumber(b:match("%d+")) or 0) end)
+    for k in pairs(CraftList) do table.insert(sortedCraftKeys, k) end
+    table.sort(sortedCraftKeys, function(a,b) return (tonumber(a:match("%d+")) or 0) < (tonumber(b:match("%d+")) or 0) end)
 end
 
 -- Trials
 do
     local allTrials = aas_TrialConfig and aas_TrialConfig:GetAllTrials() or {}
     for trialKey, trialData in pairs(allTrials) do
-        S.TrialList[trialKey] = { Name=trialData.Name or trialKey, TotalRooms=trialData.TotalRooms or 50, WorldId=trialData.WorldId or 1 }
+        TrialList[trialKey] = { Name=trialData.Name or trialKey, TotalRooms=trialData.TotalRooms or 50, WorldId=trialData.WorldId or 1 }
     end
-    for k in pairs(S.TrialList) do table.insert(S.sortedTrialKeys, k) end
-    table.sort(S.sortedTrialKeys)
+    for k in pairs(TrialList) do table.insert(sortedTrialKeys, k) end
+    table.sort(sortedTrialKeys)
 end
 
 -- Dungeons
@@ -503,11 +624,11 @@ do
     local ok, allDungeons = pcall(function() return aas_DungeonConfig:GetAllDungeons() end)
     if ok and allDungeons then
         for dungeonKey, dungeonData in pairs(allDungeons) do
-            S.DungeonList[dungeonKey] = { Name=dungeonData.Name or dungeonKey, WorldId=dungeonData.WorldId or 1, TotalRooms=dungeonData.TotalRooms or 50, Key=dungeonKey }
-            S.DungeonLoadouts[dungeonKey] = "Power"
+            DungeonList[dungeonKey] = { Name=dungeonData.Name or dungeonKey, WorldId=dungeonData.WorldId or 1, TotalRooms=dungeonData.TotalRooms or 50, Key=dungeonKey }
+            DungeonLoadouts[dungeonKey] = "Power"
         end
-        for k in pairs(S.DungeonList) do table.insert(S.sortedDungeonKeys, k) end
-        table.sort(S.sortedDungeonKeys, function(a,b) return (S.DungeonList[a].WorldId or 0) < (S.DungeonList[b].WorldId or 0) end)
+        for k in pairs(DungeonList) do table.insert(sortedDungeonKeys, k) end
+        table.sort(sortedDungeonKeys, function(a,b) return (DungeonList[a].WorldId or 0) < (DungeonList[b].WorldId or 0) end)
     end
 end
 
@@ -516,13 +637,13 @@ do
     local ok, allRushes = pcall(function() return aas_BossRushConfig:GetAllRushes() end)
     if ok and allRushes then
         for rushKey, rushData in pairs(allRushes) do
-            S.RushList[rushKey] = { Name=rushData.Name or rushKey, WorldId=rushData.WorldId or 11, Modes={} }
-            for modeId in pairs(rushData.Modes or {}) do table.insert(S.RushList[rushKey].Modes, modeId) end
-            table.sort(S.RushList[rushKey].Modes)
-            S.RushLoadouts[rushKey] = "Power"
-            table.insert(S.sortedRushKeys, rushKey)
+            RushList[rushKey] = { Name=rushData.Name or rushKey, WorldId=rushData.WorldId or 11, Modes={} }
+            for modeId in pairs(rushData.Modes or {}) do table.insert(RushList[rushKey].Modes, modeId) end
+            table.sort(RushList[rushKey].Modes)
+            RushLoadouts[rushKey] = "Power"
+            table.insert(sortedRushKeys, rushKey)
         end
-        table.sort(S.sortedRushKeys)
+        table.sort(sortedRushKeys)
     end
 end
 
@@ -552,10 +673,10 @@ do
                 if not found then table.insert(upgradeOrder, upgName) end
             end
         end
-        S.SkillTreeList[treeName] = { Name=treeName, WorldId=treeData.WorldId or 0, UpgradeOrder=upgradeOrder, UpgradeCount=#upgradeOrder }
-        table.insert(S.sortedSkillTreeKeys, treeName)
+        SkillTreeList[treeName] = { Name=treeName, WorldId=treeData.WorldId or 0, UpgradeOrder=upgradeOrder, UpgradeCount=#upgradeOrder }
+        table.insert(sortedSkillTreeKeys, treeName)
     end
-    table.sort(S.sortedSkillTreeKeys, function(a,b) return (S.SkillTreeList[a].WorldId or 0) < (S.SkillTreeList[b].WorldId or 0) end)
+    table.sort(sortedSkillTreeKeys, function(a,b) return (SkillTreeList[a].WorldId or 0) < (SkillTreeList[b].WorldId or 0) end)
 end
 
 -- Constellations
@@ -576,10 +697,10 @@ do
                 end
             end
         end
-        S.ConstellationList[constData.Id] = { Name=constData.Name or constData.Id, Id=constData.Id, Order=constData.Order or 0, NodeOrder=nodeOrder, NodeCount=#nodeOrder }
-        table.insert(S.sortedConstellationKeys, constData.Id)
+        ConstellationList[constData.Id] = { Name=constData.Name or constData.Id, Id=constData.Id, Order=constData.Order or 0, NodeOrder=nodeOrder, NodeCount=#nodeOrder }
+        table.insert(sortedConstellationKeys, constData.Id)
     end
-    table.sort(S.sortedConstellationKeys, function(a,b) return (S.ConstellationList[a].Order or 0) < (S.ConstellationList[b].Order or 0) end)
+    table.sort(sortedConstellationKeys, function(a,b) return (ConstellationList[a].Order or 0) < (ConstellationList[b].Order or 0) end)
 end
 
 -- Spawn Bosses
@@ -588,18 +709,18 @@ do
     for _, bossId in ipairs(bossIds) do
         local bossData = aas_SpawnBossConfig:GetBoss(bossId)
         if bossData then
-            S.SpawnBossList[bossId] = {
+            SpawnBossList[bossId] = {
                 Name = bossData.Name or bossId,
                 EnemyId = bossData.EnemyId or "Unknown",
                 WorldId = bossData.WorldId or 0,
                 CostItemId = bossData.CostItemId or "Unknown",
                 CostAmount = bossData.CostAmount or 1,
             }
-            table.insert(S.sortedSpawnBossKeys, bossId)
+            table.insert(sortedSpawnBossKeys, bossId)
         end
     end
-    table.sort(S.sortedSpawnBossKeys, function(a, b)
-        return (S.SpawnBossList[a].WorldId or 0) < (S.SpawnBossList[b].WorldId or 0)
+    table.sort(sortedSpawnBossKeys, function(a, b)
+        return (SpawnBossList[a].WorldId or 0) < (SpawnBossList[b].WorldId or 0)
     end)
 end
 
@@ -623,183 +744,14 @@ do
 end
 
 -- Rarity Orders
-S.TitanRarityOrder        = aas_TitansConfig and aas_TitansConfig.Rarity_Order or {"Common","Uncommon","Rare","Epic","Legendary","Mythical","Secret"}
-S.SwordPassiveRarityOrder = aas_SwordPassiveConfig and aas_SwordPassiveConfig.Rarity_Order or {"Common","Uncommon","Rare","Epic","Legendary","Mythical","Secret","Divine"}
-S.GrimoireRarityOrder     = aas_GrimoireConfig and aas_GrimoireConfig.Rarity_Order or {"Common","Uncommon","Rare","Epic","Legendary","Mythical","Secret","Divine"}
-S.PetPassiveRarityOrder   = {"Common","Uncommon","Rare","Epic","Legendary","Mythical","Secret","Divine"}
+TitanRarityOrder        = aas_TitansConfig and aas_TitansConfig.Rarity_Order or {"Common","Uncommon","Rare","Epic","Legendary","Mythical","Secret"}
+SwordPassiveRarityOrder = aas_SwordPassiveConfig and aas_SwordPassiveConfig.Rarity_Order or {"Common","Uncommon","Rare","Epic","Legendary","Mythical","Secret","Divine"}
+GrimoireRarityOrder     = aas_GrimoireConfig and aas_GrimoireConfig.Rarity_Order or {"Common","Uncommon","Rare","Epic","Legendary","Mythical","Secret","Divine"}
+PetPassiveRarityOrder   = {"Common","Uncommon","Rare","Epic","Legendary","Mythical","Secret","Divine"}
 
--- ══════════════════════════════════════════
---   LOAD OBSIDIAN UI
--- ══════════════════════════════════════════
-
-local repo    = "https://raw.githubusercontent.com/joustingmatch/ObsidianUltra/main/"
-local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
-
-pcall(function() Library.ScreenGui.Parent = game:GetService("CoreGui") end)
-
-local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
-local SaveManager  = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
-
-local Toggles = Library.Toggles
-local Options = Library.Options
-
-function isOn(name)
-    if Library.Unloaded then return false end
-    local t = Toggles[name]
-    return type(t) == "table" and t.Value == true
-end
-
-function getNumber(name, fallback)
-    local o = Options[name]
-    return (type(o) == "table" and tonumber(o.Value)) or fallback
-end
-
-function copyText(text, msg)
-    if setclipboard then setclipboard(text)
-    elseif toclipboard then toclipboard(text) end
-    Library:Notify(msg or "Copied to clipboard!")
-end
-
--- ══════════════════════════════════════════
---   FORMATTING HELPERS
--- ══════════════════════════════════════════
-
-function c(t, col)
-    t = tostring(t or "")
-    if not col or col == "" then return t end
-    return string.format('<font color="%s">%s</font>', tostring(col), t)
-end
-
-function b(t) return string.format("<b>%s</b>", t) end
-function i(t) return string.format("<i>%s</i>", t) end
-function sz(t, size) return string.format('<font size="%d">%s</font>', size, t) end
-
-function hexToRgb(hex)
-    hex = hex:gsub("#", "")
-    return tonumber("0x" .. hex:sub(1, 2)), tonumber("0x" .. hex:sub(3, 4)), tonumber("0x" .. hex:sub(5, 6))
-end
-
-function rgbToHex(r, g, b)
-    return string.format("#%02x%02x%02x", math.clamp(r, 0, 255), math.clamp(g, 0, 255), math.clamp(b, 0, 255))
-end
-
-function lerp(a, b, t) return a + (b - a) * t end
-
-function createGradientText(word, startHex, endHex)
-    local r1, g1, b1 = hexToRgb(startHex)
-    local r2, g2, b2 = hexToRgb(endHex)
-    local result = ""
-    local len = #word
-    if len == 0 then return "" end
-    if len == 1 then return string.format('<font color="%s">%s</font>', startHex, word) end
-    for j = 1, len do
-        local t = (j - 1) / (len - 1)
-        local r = math.round(lerp(r1, r2, t))
-        local g = math.round(lerp(g1, g2, t))
-        local b = math.round(lerp(b1, b2, t))
-        local char = word:sub(j, j)
-        if char == " " then
-            result = result .. " "
-        else
-            result = result .. string.format('<font color="%s">%s</font>', rgbToHex(r, g, b), char)
-        end
-    end
-    return result
-end
-
-function createMultiGradientText(word, colors)
-    if #colors < 2 then return createGradientText(word, colors[1] or "#ffffff", colors[1] or "#ffffff") end
-    local result = ""
-    local len = #word
-    if len == 0 then return "" end
-    for j = 1, len do
-        local globalT = (len == 1) and 0 or (j - 1) / (len - 1)
-        local scaled = globalT * (#colors - 1)
-        local idx = math.floor(scaled) + 1
-        local localT = scaled - (idx - 1)
-        local c1 = colors[math.min(idx, #colors)]
-        local c2 = colors[math.min(idx + 1, #colors)]
-        local r1, g1, b1 = hexToRgb(c1)
-        local r2, g2, b2 = hexToRgb(c2)
-        local r = math.round(lerp(r1, r2, localT))
-        local g = math.round(lerp(g1, g2, localT))
-        local b = math.round(lerp(b1, b2, localT))
-        local char = word:sub(j, j)
-        if char == " " then
-            result = result .. " "
-        else
-            result = result .. string.format('<font color="%s">%s</font>', rgbToHex(r, g, b), char)
-        end
-    end
-    return result
-end
-
-local PALETTE = {
-    prism   = { "#38bdf8", "#a78bfa", "#ec4899" },
-    aurora  = { "#4ade80", "#22d3ee", "#a78bfa" },
-    sunset  = { "#fbbf24", "#f97316", "#ef4444" },
-    ocean   = { "#38bdf8", "#0ea5e9", "#6366f1" },
-    fire    = { "#fef08a", "#fb923c", "#dc2626" },
-    ice     = { "#e0f2fe", "#7dd3fc", "#3b82f6" },
-    rainbow = { "#ef4444", "#fbbf24", "#4ade80", "#22d3ee", "#a78bfa", "#ec4899" },
-}
-
-function formatNumber(n)
-    if type(n) ~= "number" then return tostring(n) end
-    local formatted = tostring(math.floor(n))
-    while true do
-        local newFormatted, k = formatted:gsub("^(-?%d+)(%d%d%d)", "%1,%2")
-        formatted = newFormatted
-        if k == 0 then break end
-    end
-    return formatted
-end
-
-function formatDuration(secs)
-    secs = math.floor(secs)
-    local h = math.floor(secs / 3600)
-    local m = math.floor((secs % 3600) / 60)
-    local s = secs % 60
-    if h > 0 then return string.format("%dh %dm %ds", h, m, s) end
-    if m > 0 then return string.format("%dm %ds", m, s) end
-    return string.format("%ds", s)
-end
-
--- Gradient [+] prefix generator for Info tab only
-function gradPlus(colors)
-    return createMultiGradientText("[+]", colors)
-end
-
-local DISCORD_INVITE = "https://discord.gg/DHeCNzTypH"
-local RSCRIPTS_LINK  = "https://rscripts.net/@Prism"
-
--- ══════════════════════════════════════════
---   CREATE WINDOW
--- ══════════════════════════════════════════
-
-local Window = Library:CreateWindow({
-    Title            = "Prism",
-    Footer           = "Prism  |  Anime Astral Simulator  |  v2.5",
-    Icon             = "rbxassetid://117487160988921",
-    MobileButtonSide = "Right",
-    NotifySide       = "Right",
-    ShowCustomCursor = false,
-    CornerRadius     = 2,
-	Animations = {
-		ToggleWindow = false, -- Fade/scale the window when it is shown or hidden
-		TabSwitch = true, -- Fade + slide the tab content when you switch tabs
-		Groupbox = false,
-		Dropdown = true,
-		KeyPicker = true,
-		SubTabUnderline = true, -- Slide the underline under the active sub tab (Default value = true)
-	},
-})
-
--- ══════════════════════════════════════════
 --   PLAYER SYSTEM SETUP (FROM ORIGINAL)
 -- ══════════════════════════════════════════
 
-local FLYING = false
 local QEfly = true
 local iyflyspeed = 1
 local vehicleflyspeed = 1
@@ -877,7 +829,7 @@ function sFLY(vfly)
                     BV.Velocity = Vector3.new(0, 0, 0)
                 end
                 BG.CFrame = camera.CFrame
-            until not FLYING or Library.Unloaded
+            until not FLYING or unloaded
 
             CONTROL = {F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0}
             lCONTROL = {F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0}
@@ -947,7 +899,7 @@ if LocalPlayer.Character then
 end
 
 local steppedConnection = RunService.Stepped:Connect(function()
-    if Library.Unloaded then return end
+    if unloaded then return end
     if isOn("NoClip") then
         for i = 1, #characterParts do
             local p = characterParts[i]
@@ -960,7 +912,7 @@ end)
 
 local jumpConnection = RunService.RenderStepped:Connect(function() end)
 local renderConnection = RunService.RenderStepped:Connect(function()
-    if Library.Unloaded then return end
+    if unloaded then return end
     if isOn("WalkSpeedEnabled") then
         local h = getHumanoid()
         if h then h.WalkSpeed = currentWalkSpeed end
@@ -972,7 +924,7 @@ local renderConnection = RunService.RenderStepped:Connect(function()
 end)
 
 local infJumpConnection = UserInputService.JumpRequest:Connect(function()
-    if Library.Unloaded then return end
+    if unloaded then return end
     if isOn("InfJump") then
         local h = getHumanoid()
         if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end
@@ -980,144 +932,511 @@ local infJumpConnection = UserInputService.JumpRequest:Connect(function()
 end)
 
 -- ══════════════════════════════════════════
+--   NAME CHANGER ENGINE (game labels, UI-agnostic)
+-- ══════════════════════════════════════════
+
+local euclideanNameOrig = setmetatable({}, { __mode = "k" })
+local euclideanNameUpdating = false
+local euclideanSpoofOn = false
+local euclideanSpoofName = "EuclideanUser"
+
+local function euclideanEscapePattern(str)
+    return str:gsub("([%%%(%)%^%$%-%?%*%+%[%]])", "%%%1")
+end
+
+local function euclideanUpdateLabel(label)
+    if not label or not label:IsA("TextLabel") then return end
+    local orig = euclideanNameOrig[label]
+    if not orig then
+        orig = label.Text
+        euclideanNameOrig[label] = orig
+    end
+    local realName = LocalPlayer.Name
+    if not orig or not orig:find(realName, 1, true) then return end
+    local newText = euclideanSpoofOn and orig:gsub(euclideanEscapePattern(realName), euclideanSpoofName) or orig
+    if label.Text ~= newText then
+        euclideanNameUpdating = true
+        pcall(function() label.Text = newText end)
+        euclideanNameUpdating = false
+    end
+end
+
+local function euclideanHookLabel(label)
+    if not label or not label:IsA("TextLabel") or euclideanNameOrig[label] ~= nil then return end
+    euclideanNameOrig[label] = label.Text
+    label:GetPropertyChangedSignal("Text"):Connect(function()
+        if euclideanNameUpdating then return end
+        local curText = label.Text
+        if not euclideanSpoofOn or (curText and curText:find(LocalPlayer.Name, 1, true)) then
+            euclideanNameOrig[label] = curText
+        end
+        if euclideanSpoofOn then euclideanUpdateLabel(label) end
+    end)
+    if euclideanSpoofOn then euclideanUpdateLabel(label) end
+end
+
+local function applyEuclideanNameSpoof()
+    for _, obj in ipairs(game:GetDescendants()) do
+        if obj:IsA("TextLabel") then
+            if euclideanNameOrig[obj] == nil then
+                pcall(euclideanHookLabel, obj)
+            else
+                pcall(euclideanUpdateLabel, obj)
+            end
+        end
+    end
+end
+
+local function restoreEuclideanNames()
+    for label, orig in pairs(euclideanNameOrig) do
+        pcall(function()
+            if label and label.Parent then label.Text = orig end
+        end)
+    end
+    table.clear(euclideanNameOrig)
+end
+
+game.DescendantAdded:Connect(function(desc)
+    if desc:IsA("TextLabel") then
+        task.wait()
+        pcall(euclideanHookLabel, desc)
+    end
+end)
+
+-- ══════════════════════════════════════════
+--   FPS BOOST ENGINE
+-- ══════════════════════════════════════════
+
+euclideanFPSCache = euclideanFPSCache or {}
+euclideanFPSCleaning = euclideanFPSCleaning or nil
+
+function euclideanFPSCleanVisuals(obj)
+    if obj:IsA("Decal") or obj:IsA("Texture") then
+        euclideanFPSCache[obj] = { Transparency = obj.Transparency }
+        obj.Transparency = 1
+    elseif obj:IsA("MeshPart") then
+        euclideanFPSCache[obj] = { Material = obj.Material, TextureID = obj.TextureID, CastShadow = obj.CastShadow }
+        obj.Material = Enum.Material.SmoothPlastic
+        obj.TextureID = ""
+        obj.CastShadow = false
+    elseif obj:IsA("BasePart") and not obj:IsA("MeshPart") then
+        euclideanFPSCache[obj] = { Material = obj.Material, CastShadow = obj.CastShadow }
+        obj.Material = Enum.Material.SmoothPlastic
+        obj.CastShadow = false
+    elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") or obj:IsA("Beam") or obj:IsA("Highlight") then
+        euclideanFPSCache[obj] = { Enabled = obj.Enabled }
+        pcall(function() obj.Enabled = false end)
+    elseif obj:IsA("Sound") then
+        euclideanFPSCache[obj] = { Volume = obj.Volume }
+        obj.Volume = 0
+    end
+end
+
+function applyEuclideanFPSBoost(enabled)
+    if enabled then
+        euclideanFPSCache.Lighting = {
+            GlobalShadows = Lighting.GlobalShadows,
+            FogEnd        = Lighting.FogEnd,
+            Brightness    = Lighting.Brightness,
+            ClockTime     = Lighting.ClockTime,
+            ExposureCompensation = Lighting.ExposureCompensation
+        }
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd        = 9e9
+        Lighting.Brightness    = 2
+        Lighting.ExposureCompensation = 0.5
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        for _, obj in ipairs(Lighting:GetDescendants()) do
+            if obj:IsA("PostEffect") or obj:IsA("Atmosphere") or obj:IsA("Clouds") or obj:IsA("Sky") then
+                euclideanFPSCache[obj] = obj.Parent
+                obj.Parent = nil
+            end
+        end
+        if workspace:FindFirstChildOfClass("Terrain") then
+            local t = workspace:FindFirstChildOfClass("Terrain")
+            euclideanFPSCache.Terrain = {
+                Decoration = t.Decoration,
+                WaterWaveSize = t.WaterWaveSize,
+                WaterWaveSpeed = t.WaterWaveSpeed,
+                WaterReflectance = t.WaterReflectance,
+                WaterTransparency = t.WaterTransparency
+            }
+            t.Decoration = false
+            t.WaterWaveSize = 0
+            t.WaterWaveSpeed = 0
+            t.WaterReflectance = 0
+            t.WaterTransparency = 0
+        end
+        for _, desc in ipairs(workspace:GetDescendants()) do
+            euclideanFPSCleanVisuals(desc)
+        end
+        if euclideanFPSCleaning then euclideanFPSCleaning:Disconnect() end
+        euclideanFPSCleaning = workspace.DescendantAdded:Connect(function(desc)
+            task.wait()
+            pcall(euclideanFPSCleanVisuals, desc)
+        end)
+    else
+        if euclideanFPSCleaning then
+            euclideanFPSCleaning:Disconnect()
+            euclideanFPSCleaning = nil
+        end
+        if euclideanFPSCache.Lighting then
+            for prop, val in pairs(euclideanFPSCache.Lighting) do
+                Lighting[prop] = val
+            end
+        end
+        if euclideanFPSCache.Terrain and workspace:FindFirstChildOfClass("Terrain") then
+            local t = workspace:FindFirstChildOfClass("Terrain")
+            for prop, val in pairs(euclideanFPSCache.Terrain) do
+                t[prop] = val
+            end
+        end
+        for obj, data in pairs(euclideanFPSCache) do
+            if typeof(obj) == "Instance" then
+                pcall(function()
+                    if typeof(data) == "Instance" then
+                        obj.Parent = data
+                    elseif type(data) == "table" then
+                        for prop, val in pairs(data) do
+                            obj[prop] = val
+                        end
+                    end
+                end)
+            end
+        end
+        table.clear(euclideanFPSCache)
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Default
+    end
+end
+
+--   ANTI-ANNOYANCE GUARDS (gameplay pause + robux popups)
+-- ══════════════════════════════════════════
+
+local networkPauseConn = nil
+
+
+local function euclideanKillNetworkPause()
+    pcall(function()
+        local rg = game:GetService("CoreGui"):FindFirstChild("RobloxGui")
+        if rg then
+            local np = rg:FindFirstChild("CoreScripts/NetworkPause", true)
+            if np then np:Destroy() end
+        end
+    end)
+    pcall(function()
+        local n = game:GetService("CoreGui"):FindFirstChild("RobloxNetworkPauseNotification")
+        if n then n.Enabled = false end
+    end)
+end
+
+local foundationOverlayConn = nil
+
+local function setRobuxPopupGuard(on)
+    pcall(function()
+        if foundationOverlayConn then foundationOverlayConn:Disconnect() foundationOverlayConn = nil end
+    end)
+    if on then
+        local CG = game:GetService("CoreGui")
+        pcall(function() CG.PurchasePromptApp.Enabled = false end)
+        local fo = CG:FindFirstChild("FoundationOverlay")
+        if fo then pcall(function() fo.Enabled = false end) end
+        foundationOverlayConn = CG.ChildAdded:Connect(function(ins)
+            if ins.Name == "FoundationOverlay" then
+                pcall(function() ins.Enabled = false end)
+            end
+        end)
+    end
+end
+
+--   BLACKOUT + REJOIN
+-- ══════════════════════════════════════════
+
+local blackoutGui = nil
+local function setBlackout(enabled)
+    if enabled then
+        if not blackoutGui then
+            blackoutGui = Instance.new("ScreenGui")
+            blackoutGui.Name = "EuclideanBlackout"
+            blackoutGui.IgnoreGuiInset = true
+            blackoutGui.DisplayOrder = -999999
+            blackoutGui.ResetOnSpawn = false
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.fromScale(1, 1)
+            frame.BackgroundColor3 = Color3.new(0, 0, 0)
+            frame.BorderSizePixel = 0
+            frame.Parent = blackoutGui
+            pcall(function() blackoutGui.Parent = game:GetService("CoreGui") end)
+        end
+        blackoutGui.Enabled = true
+    else
+        if blackoutGui then blackoutGui.Enabled = false end
+    end
+end
+
+local AUTOEXEC_CODE = "loadstring(game:HttpGet('https://raw.githubusercontent.com/hersheyzchoco-cmyk/Euclidean/main/loader.lua'))()"
+
+-- Forward-declared: assigned after the Ouro library loads (below).
+local isOn
+
+local FLYING = false
+local freezeConn = nil
+
+local function safeRejoin()
+    FLYING = false
+    if freezeConn then freezeConn:Disconnect() freezeConn = nil end
+    RunService:Set3dRenderingEnabled(true)
+    setBlackout(false)
+    local char = LocalPlayer.Character
+    if char then
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if root then root.AssemblyLinearVelocity = Vector3.zero end
+        if hum then hum.PlatformStand = false end
+    end
+    if isOn and isOn("AutoExecute") then
+        euclideanQueueAutoExec(AUTOEXEC_CODE)
+    end
+    if #Players:GetPlayers() <= 1 then
+        TeleportService:Teleport(game.PlaceId, LocalPlayer)
+    else
+        local ok = pcall(function()
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+        end)
+        if not ok then
+            TeleportService:Teleport(game.PlaceId, LocalPlayer)
+        end
+    end
+end
+
+TeleportService.TeleportInitFailed:Connect(function()
+    TeleportService:Teleport(game.PlaceId, LocalPlayer)
+end)
+
+--   FORMATTING HELPERS
+-- ══════════════════════════════════════════
+
+function c(t, col)
+    t = tostring(t or "")
+    if not col or col == "" then return t end
+    return string.format('<font color="%s">%s</font>', tostring(col), t)
+end
+
+function b(t) return string.format("<b>%s</b>", t) end
+function i(t) return string.format("<i>%s</i>", t) end
+function sz(t, size) return string.format('<font size="%d">%s</font>', size, t) end
+
+local ARROW = " → "
+
+-- Label write that accepts an Ouro handle (:Set) or a raw instance (.Text)
+function aas_setLabel(ref, text)
+    if ref == nil then return end
+    if type(ref) == "table" and type(ref.Set) == "function" then
+        pcall(function() ref:Set(text) end)
+    else
+        pcall(function() ref.Text = text end)
+    end
+end
+
+local function formatNumber(n)
+    if type(n) ~= "number" then return tostring(n) end
+    local formatted = tostring(math.floor(n))
+    while true do
+        local newFormatted, k = formatted:gsub("^(-?%d+)(%d%d%d)", "%1,%2")
+        formatted = newFormatted
+        if k == 0 then break end
+    end
+    return formatted
+end
+
+local function formatDuration(secs)
+    secs = math.floor(secs)
+    local h = math.floor(secs / 3600)
+    local m = math.floor((secs % 3600) / 60)
+    local s = secs % 60
+    if h > 0 then return string.format("%dh %dm %ds", h, m, s) end
+    if m > 0 then return string.format("%dm %ds", m, s) end
+    return string.format("%ds", s)
+end
+
+-- Build pacer: yields every few controls so the window paints progressively
+-- instead of freezing for the whole build. Order-preserving, behavior-neutral.
+local aas_buildCount = 0
+local function aas_buildTick()
+    aas_buildCount = aas_buildCount + 1
+    if aas_buildCount % 6 == 0 then task.wait() end
+end
+
+
+
+local DISCORD_INVITE = "https://discord.gg/DHeCNzTypH"
+local RSCRIPTS_LINK  = "https://rscripts.net/@Euclidean"
+
+--   LOAD OUROFLOW UI
+-- ══════════════════════════════════════════
+
+local Ouro = loadstring(game:HttpGet("https://raw.githubusercontent.com/joustingmatch/OuroFlow/main/Source.luau"))()
+pcall(function() Ouro:SetDefaultTheme("Mono") end)
+
+-- Flag compat: game code keeps reading Toggles.X / Options.X like before.
+local euclideanWatchers = {}
+local function euclideanShallowEqual(a, b)
+    if type(a) ~= type(b) then return false end
+    if type(a) ~= "table" then return a == b end
+    for k, v in pairs(a) do if b[k] ~= v then return false end end
+    for k, v in pairs(b) do if a[k] ~= v then return false end end
+    return true
+end
+local function euclideanReadFlag(flag)
+    if type(flag) ~= "table" then return nil end
+    if type(flag.Get) == "function" then
+        local ok, v = pcall(function() return flag:Get() end)
+        if ok then return v end
+    end
+    return flag.Value
+end
+local function euclideanWatchFlag(flag, fn)
+    table.insert(euclideanWatchers, { flag = flag, fn = fn, last = euclideanReadFlag(flag) })
+end
+local function euclideanWrapFlag(flag)
+    if type(flag) ~= "table" then return nil end
+    local w = {}
+    setmetatable(w, {
+        __index = function(_, k)
+            if k == "Value" then
+                return euclideanReadFlag(flag)
+            elseif k == "SetValue" then
+                return function(_, v) if type(flag.Set) == "function" then pcall(function() flag:Set(v) end) end end
+            elseif k == "SetValues" then
+                return function(_, v)
+                    local ok = false
+                    if type(flag.Refresh) == "function" then ok = pcall(function() flag:Refresh(v, true) end) end
+                    if not ok and type(flag.Set) == "function" then pcall(function() flag:Set(v) end) end
+                end
+            elseif k == "GetValue" then
+                return function(_) return euclideanReadFlag(flag) end
+            elseif k == "OnChanged" then
+                return function(_, fn) euclideanWatchFlag(flag, fn) end
+            end
+            return nil
+        end,
+        __newindex = function(_, k, v)
+            if k == "Value" and type(flag.Set) == "function" then pcall(function() flag:Set(v) end) end
+        end,
+    })
+    return w
+end
+local Toggles = setmetatable({}, {
+    __index = function(_, k) return euclideanWrapFlag(Ouro.Flags[k]) end,
+    __newindex = function(_, k, v)
+        local f = Ouro.Flags[k]
+        if type(f) == "table" and type(f.Set) == "function" then pcall(function() f:Set(v) end) end
+    end,
+})
+local Options = setmetatable({}, {
+    __index = function(_, k) return euclideanWrapFlag(Ouro.Flags[k]) end,
+    __newindex = function(_, k, v)
+        local f = Ouro.Flags[k]
+        if type(f) == "table" and type(f.Set) == "function" then pcall(function() f:Set(v) end) end
+    end,
+})
+task.spawn(function()
+    while not unloaded do
+        task.wait(0.15)
+        if unloaded then break end
+        for _, w in ipairs(euclideanWatchers) do
+            local v = euclideanReadFlag(w.flag)
+            if not euclideanShallowEqual(v, w.last) then
+                w.last = v
+                pcall(w.fn, v)
+            end
+        end
+    end
+end)
+isOn = function(name)
+    if unloaded then return false end
+    local t = Toggles[name]
+    return type(t) == "table" and t.Value == true
+end
+
+local function notify(text, dur)
+    pcall(function()
+        Window:Notify({ Title = "Euclidean", Content = tostring(text), Type = "Info", Duration = dur or 3 })
+    end)
+end
+
+local function copyText(text, msg)
+    if setclipboard then setclipboard(text)
+    elseif toclipboard then toclipboard(text) end
+    notify(msg or "Copied to clipboard!")
+end
+
+local Window = Ouro:CreateWindow({
+    Name = "Euclidean",
+    LoadingSubtitle = "Anime Astral Simulator",
+    Icon = "rbxassetid://118719079382998",
+    ToggleUIKeybind = "RightControl",
+    Transparent = true,
+    Size = UDim2.fromOffset(900, 650),
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "Euclidean/AnimeAstralSimulatorOuro",
+        FileName = "default",
+    },
+    Backdrop = { Weather = "Snow", Tint = 0.45, Mode = "UI" },
+    Loading = {
+        Enabled = true,
+        Title = "Euclidean",
+        Text = "Anime Astral Simulator",
+        Steps = { "Reading live config", "Binding remotes", "Almost there" },
+        Duration = 2.2,
+    },
+    Home = {
+        Tier = "v1.0.0",
+        Discord = "discord.gg/DHeCNzTypH",
+        Website = "rscripts.net/@Euclidean",
+        Stats = { "Players", "FPS", "Ping", "Execs", "Session", "Executor" },
+        StatsFolder = "Euclidean/AnimeAstralSimulatorOuro-" .. tostring(game.PlaceId),
+    },
+})
+
+-- ══════════════════════════════════════════
 --   TABS
 -- ══════════════════════════════════════════
 
 local Tabs = {
-    Info        = Window:AddTab("Info",            "activity"),
-    Main        = Window:AddTab("Main",            "star"),
-    Farm        = Window:AddTab("Mob Farm",        "sword"),
-    Gamemodes   = Window:AddTab("Gamemodes",       "gamepad-2"),
-    Config      = Window:AddTab("Loadouts / Potions", "sliders-horizontal"),
-    Gacha       = Window:AddTab("Gacha",           "sparkles"),
-    Progression = Window:AddTab("Progression",     "trending-up"),
-    Star        = Window:AddTab("Star",            "star"),
-    Quests      = Window:AddTab("Quests",          "scroll-text"),
-    Promotion   = Window:AddTab("Promotion",       "medal"),
-    Player      = Window:AddTab("Player",          "user-check"),
-    Settings    = Window:AddTab("Settings",        "settings"),
+    Main     = Window:CreateTab({ Name = "Main", Icon = "star" }),
+    Modes    = Window:CreateTab({ Name = "Modes", Icon = "gamepad-2" }),
+    Summon   = Window:CreateTab({ Name = "Summon", Icon = "sparkles" }),
+    Progress = Window:CreateTab({ Name = "Progress", Icon = "trending-up" }),
+    Player   = Window:CreateTab({ Name = "Player", Icon = "user" }),
+    Settings = Window:CreateTab({ Name = "Settings", Icon = "settings" }),
 }
 
--- Gamemodes SubTabs
-Tabs.Priority = Tabs.Gamemodes:AddSubTab("Priority", "triangle-alert")
-Tabs.Raid     = Tabs.Gamemodes:AddSubTab("Raid",     "zap")
-Tabs.Defense  = Tabs.Gamemodes:AddSubTab("Defense",  "shield")
-Tabs.Dungeon  = Tabs.Gamemodes:AddSubTab("Dungeon",  "door-open")
-Tabs.Rush     = Tabs.Gamemodes:AddSubTab("Rush",     "skull")
-Tabs.Trial    = Tabs.Gamemodes:AddSubTab("Trial",    "clock")
-Tabs.Gate     = Tabs.Gamemodes:AddSubTab("Gate",     "shield")
-Tabs.Loadouts = Tabs.Config:AddSubTab("Loadouts",    "layers-2")
-Tabs.Potions  = Tabs.Config:AddSubTab("Potions",     "flask-conical")
+local PlayerTab = Tabs.Player
+local SettingsTab = Tabs.Settings
 
--- ══════════════════════════════════════════
---   INFO TAB (GRADIENT ENABLED)
--- ══════════════════════════════════════════
+-- Main: Automation | Mob Farm | Harvest
+Tabs.Automation = Tabs.Main:CreateSubTab({ Name = "Automation", Icon = "zap" })
+Tabs.MobFarm = Tabs.Main:CreateSubTab({ Name = "Mob Farm", Icon = "sword" })
+Tabs.Harvest = Tabs.Main:CreateSubTab({ Name = "Collect", Icon = "feather" })
 
-do
-    local PrismBox = Tabs.Info:AddLeftGroupbox("Prism", "sparkles")
-    PrismBox:AddLabel(sz(b(createMultiGradientText("PRISM", PALETTE.prism)), 20), true)
-    PrismBox:AddLabel(c(i("keyless forever, always will be"), "#9ca3af"), true)
-    PrismBox:AddLabel(
-        c(b("status "),  "#6b7280") .. c(b("online"), "#4ade80") ..
-        c("     ",       "#374151") ..
-        c(b("version "), "#6b7280") .. c(b("4.6"), "#38bdf8"),
-    true)
-    PrismBox:AddDivider()
-    PrismBox:AddLabel(sz(b(createMultiGradientText("if you enjoy the script or want to report a bug, please consider the following:", PALETTE.ice)), 14), true)
-    PrismBox:AddLabel(sz(b(createMultiGradientText("more than 60 keyless scripts in this hub, I would love your support!", PALETTE.ice)), 14), true)    PrismBox:AddButton({ Text = "Discord for Support 💝",     Func = function() copyText(DISCORD_INVITE, "Discord invite copied!") end })
-    PrismBox:AddButton({ Text = "Follow Rscripts 🙏", Func = function() copyText(RSCRIPTS_LINK, "Rscripts link copied!") end })
+-- Modes: Raids | Dungeons | Bosses | Setup (max 4)
+Tabs.Raids = Tabs.Modes:CreateSubTab({ Name = "Raids", Icon = "zap" })
+Tabs.Dungeons = Tabs.Modes:CreateSubTab({ Name = "Dungeons", Icon = "door-open" })
+Tabs.Bosses = Tabs.Modes:CreateSubTab({ Name = "Bosses", Icon = "skull" })
+Tabs.Setup = Tabs.Modes:CreateSubTab({ Name = "Setup", Icon = "settings" })
 
-    local FeaturesBox = Tabs.Info:AddLeftGroupbox("Features", "layers")
-    local featureList = {
-        "Auto Farm Mobs",
-        "Auto Farm Raid",
-        "Auto Farm Defense",
-        "Auto Farm Trial",
-        "Auto Farm Gate",
-        "Auto Farm Dungeon",
-        "Auto Farm Boss Rush",
-        "Auto Farm Cursed Rush",
-        "Auto Spawn Z Boss",
-        "Priority System",
-        "Auto Gacha",
-        "Auto Passives",
-        "Auto Swords",
-        "Auto Progression",
-        "Auto Upgrades",
-        "Auto Global Quests",
-        "Auto Promotion Quests",
-        "Auto Crow, Ball, Commandment",
-        "Auto Star",
-        "Auto Craft",
-        "Auto Evolution",
-        "Auto Upgrade Skill Tree",
-        "Auto Upgrade Constellation",
-        "Auto Pause/Unpause Potions",
-        "Auto Swap Loadouts",
-        "Anti AFK",
-        "Fly, NoClip, WalkSpeed",
-    }
-    for _, item in ipairs(featureList) do
-        FeaturesBox:AddLabel(gradPlus(PALETTE.prism) .. c(" " .. item, "#f3f4f6"), true)
-    end
+-- Summon: Gacha | Swords | Star
+Tabs.GachaTab = Tabs.Summon:CreateSubTab({ Name = "Gacha", Icon = "sparkles" })
+Tabs.Swords = Tabs.Summon:CreateSubTab({ Name = "Swords", Icon = "sword" })
+Tabs.Star = Tabs.Summon:CreateSubTab({ Name = "Star", Icon = "star" })
 
-    local DiagnosticBox = Tabs.Info:AddRightGroupbox("Live", "cpu")
-    local FpsLabel     = DiagnosticBox:AddLabel(b("FPS: ")    .. c("...", "#60a5fa"), true)
-    local PingLabel    = DiagnosticBox:AddLabel(b("Ping: ")   .. c("...", "#4ade80"), true)
-    local MemoryLabel  = DiagnosticBox:AddLabel(b("Memory: ") .. c("...", "#fbbf24"), true)
-    local SessionLabel = DiagnosticBox:AddLabel(b("Uptime: ") .. c("0s",  "#a78bfa"), true)
+-- Progress: Training | Upgrades | Growth | Quests
+Tabs.Training = Tabs.Progress:CreateSubTab({ Name = "Progression", Icon = "dumbbell" })
+Tabs.Upgrades = Tabs.Progress:CreateSubTab({ Name = "Upgrades", Icon = "hammer" })
+Tabs.Growth = Tabs.Progress:CreateSubTab({ Name = "Extra", Icon = "plus" })
+Tabs.Quests = Tabs.Progress:CreateSubTab({ Name = "Quests", Icon = "scroll" })
 
-    local sessionStart = SessionStats.startTime
-    local frameCount = 0
-    local lastFpsUpdate = os.clock()
-
-    RunService.RenderStepped:Connect(function()
-        frameCount = frameCount + 1
-        local now = os.clock()
-        if now - lastFpsUpdate >= 0.5 then
-            local fps = math.floor(frameCount / (now - lastFpsUpdate))
-            frameCount = 0
-            lastFpsUpdate = now
-            if not Library.Unloaded then
-                local ping = math.floor(StatsService.PerformanceStats.Ping:GetValue())
-                local mem  = math.floor(StatsService:GetTotalMemoryUsageMb())
-                local fpsColor  = fps > 45 and "#4ade80" or (fps > 25 and "#fbbf24" or "#ef4444")
-                local pingColor = ping < 80 and "#4ade80" or (ping < 150 and "#fbbf24" or "#ef4444")
-                FpsLabel:SetText(b("FPS: ")    .. c(tostring(fps), fpsColor))
-                PingLabel:SetText(b("Ping: ")  .. c(tostring(ping) .. " ms", pingColor))
-                MemoryLabel:SetText(b("Memory: ") .. c(tostring(mem) .. " MB", "#fbbf24"))
-            end
-        end
-    end)
-
-    task.spawn(function()
-        while not Library.Unloaded do
-            task.wait(1)
-            SessionLabel:SetText(b("Uptime: ") .. c(formatDuration(os.clock() - sessionStart), "#a78bfa"))
-        end
-    end)
-
-    local SessionBox = Tabs.Info:AddRightGroupbox("Roblox", "server")
-    SessionBox:AddLabel(b(createMultiGradientText("EXTRA INFO", PALETTE.aurora)), true)
-    SessionBox:AddDivider()
-    SessionBox:AddLabel(b("User: ")     .. c(LocalPlayer.Name, "#ffffff"), true)
-    SessionBox:AddLabel(b("Executor: ") .. c(executorName, "#fb923c"), true)
-    SessionBox:AddLabel(b("Place ID: ") .. c(tostring(game.PlaceId), "#60a5fa"), true)
-    SessionBox:AddLabel(b("Job ID: ")   .. c(string.sub(tostring(game.JobId), 1, 14) .. "...", "#9ca3af"), true)
-    SessionBox:AddDivider()
-    SessionBox:AddButton({
-        Text = "Copy Server ID",
-        Func = function() copyText(game.JobId, "Server JobId copied!") end,
-    })
-    SessionBox:AddButton({
-        Text = "Copy Rejoin Script",
-        Func = function()
-            copyText(string.format('game:GetService("TeleportService"):TeleportToPlaceInstance(%s, "%s", game.Players.LocalPlayer)', game.PlaceId, game.JobId), "Rejoin script copied!")
-        end,
-    })
-end
-
--- ══════════════════════════════════════════
 --   CORE GAME HELPERS
 -- ══════════════════════════════════════════
 
@@ -1265,20 +1584,20 @@ function aas_rushArenaExists(rushKey)
     return false, nil
 end
 
-function aas_anyRaidActive()    return S.activeRaidKey ~= nil end
-function aas_anyDefenseActive() return S.activeDefenseKey ~= nil end
-function aas_anyDungeonActive() return S.activeDungeonKey ~= nil end
-function aas_anyRushActive()    return S.activeRushKey ~= nil end
+function aas_anyRaidActive()    return activeRaidKey ~= nil end
+function aas_anyDefenseActive() return activeDefenseKey ~= nil end
+function aas_anyDungeonActive() return activeDungeonKey ~= nil end
+function aas_anyRushActive()    return activeRushKey ~= nil end
 
 function aas_anySpawnBossActive()
-    for _, bossId in ipairs(S.sortedSpawnBossKeys) do
-        if S.spawnBossEnabled[bossId] then return true end
+    for _, bossId in ipairs(sortedSpawnBossKeys) do
+        if spawnBossEnabled[bossId] then return true end
     end
     return false
 end
 
 function aas_findSpawnBossMob(bossId)
-    local bossData = S.SpawnBossList[bossId]
+    local bossData = SpawnBossList[bossId]
     if not bossData then return nil end
     local worldFolder = workspace:FindFirstChild("Worlds")
     if not worldFolder then return nil end
@@ -1300,7 +1619,7 @@ function aas_waitForSpawnBossMob(bossId, timeoutSecs)
     timeoutSecs = timeoutSecs or 10
     local deadline = tick() + timeoutSecs
     while tick() < deadline do
-        if not S.spawnBossEnabled[bossId] then return nil end
+        if not spawnBossEnabled[bossId] then return nil end
         local mob = aas_findSpawnBossMob(bossId)
         if mob and mob.Parent and mob:GetAttribute("EnemyDead") ~= true then
             return mob
@@ -1311,7 +1630,7 @@ function aas_waitForSpawnBossMob(bossId, timeoutSecs)
 end
 
 function aas_getPriorityRank(activityType)
-    for i, v in ipairs(S.priorityOrder) do if v == activityType then return i end end
+    for i, v in ipairs(priorityOrder) do if v == activityType then return i end end
     return 999
 end
 
@@ -1320,27 +1639,27 @@ function aas_hasHigherPriority(activityA, activityB)
 end
 
 function aas_isHighPriorityActivityRunning()
-    for _, tk in ipairs(S.sortedTrialKeys) do
-        if S.trialEnabled[tk] and aas_trialArenaExists(tk) then return true, "Trial" end
+    for _, tk in ipairs(sortedTrialKeys) do
+        if trialEnabled[tk] and aas_trialArenaExists(tk) then return true, "Trial" end
     end
-    if S.gateEnabled and aas_gateArenaExists() then return true, "Gate" end
-    for _, dk in ipairs(S.sortedDungeonKeys) do
-        if S.dungeonEnabled[dk] and aas_dungeonArenaExists(dk) then return true, "Dungeon" end
+    if gateEnabled and aas_gateArenaExists() then return true, "Gate" end
+    for _, dk in ipairs(sortedDungeonKeys) do
+        if dungeonEnabled[dk] and aas_dungeonArenaExists(dk) then return true, "Dungeon" end
     end
     return false, nil
 end
 
 function aas_isHighPrioritySpawnOrRunPresent()
-    for _, tk in ipairs(S.sortedTrialKeys) do
-        if S.trialEnabled[tk] and aas_trialArenaExists(tk) then return true, "Trial" end
+    for _, tk in ipairs(sortedTrialKeys) do
+        if trialEnabled[tk] and aas_trialArenaExists(tk) then return true, "Trial" end
     end
     local gateSpawned = false
     pcall(function()
-        gateSpawned = S.gateEnabled and workspace.Worlds["5"].Systems.RaidStation:FindFirstChild("ActiveGate") ~= nil
+        gateSpawned = gateEnabled and workspace.Worlds["5"].Systems.RaidStation:FindFirstChild("ActiveGate") ~= nil
     end)
-    if gateSpawned or (S.gateEnabled and aas_gateArenaExists()) then return true, "Gate" end
-    for _, dk in ipairs(S.sortedDungeonKeys) do
-        if S.dungeonEnabled[dk] and aas_dungeonArenaExists(dk) then return true, "Dungeon" end
+    if gateSpawned or (gateEnabled and aas_gateArenaExists()) then return true, "Gate" end
+    for _, dk in ipairs(sortedDungeonKeys) do
+        if dungeonEnabled[dk] and aas_dungeonArenaExists(dk) then return true, "Dungeon" end
     end
     return false, nil
 end
@@ -1351,20 +1670,20 @@ function aas_monitorForConflicts(ownType, windowSecs)
     local highestConflict, highestRank = nil, aas_getPriorityRank(ownType)
     while tick() < deadline do
         if ownType ~= "Trial" then
-            for _, tk in ipairs(S.sortedTrialKeys) do
-                if S.trialEnabled[tk] and aas_trialArenaExists(tk) then
+            for _, tk in ipairs(sortedTrialKeys) do
+                if trialEnabled[tk] and aas_trialArenaExists(tk) then
                     local rank = aas_getPriorityRank("Trial")
                     if rank < highestRank then highestRank = rank highestConflict = "Trial" end
                 end
             end
         end
-        if ownType ~= "Gate" and S.gateEnabled and aas_gateArenaExists() then
+        if ownType ~= "Gate" and gateEnabled and aas_gateArenaExists() then
             local rank = aas_getPriorityRank("Gate")
             if rank < highestRank then highestRank = rank highestConflict = "Gate" end
         end
         if ownType ~= "Dungeon" then
-            for _, dk in ipairs(S.sortedDungeonKeys) do
-                if S.dungeonEnabled[dk] and aas_dungeonArenaExists(dk) then
+            for _, dk in ipairs(sortedDungeonKeys) do
+                if dungeonEnabled[dk] and aas_dungeonArenaExists(dk) then
                     local rank = aas_getPriorityRank("Dungeon")
                     if rank < highestRank then highestRank = rank highestConflict = "Dungeon" end
                 end
@@ -1388,13 +1707,13 @@ function aas_getPotionContextSet(contextKey)
 end
 
 function aas_applyPotionContext(contextKey)
-    if not S.potionContextEnabled then return end
+    if not potionContextEnabled then return end
     local wantedSet = aas_getPotionContextSet(contextKey)
     pcall(function()
         local data = aas_getPlayerDataFunc:InvokeServer()
-        if data and type(data.ActivePotions) == "table" then S.activePotions = data.ActivePotions end
+        if data and type(data.ActivePotions) == "table" then activePotions = data.ActivePotions end
     end)
-    for potionId, potionState in pairs(S.activePotions) do
+    for potionId, potionState in pairs(activePotions) do
         local shouldBeActive = wantedSet[potionId] == true
         local isCurrentlyPaused = potionState.Paused == true
         if shouldBeActive and isCurrentlyPaused then
@@ -1405,18 +1724,18 @@ function aas_applyPotionContext(contextKey)
             task.wait(0.15)
         end
     end
-    S.currentPotionContext = contextKey
-    if S.potionStatusLabelRef then
-        S.potionStatusLabelRef:SetText("Context: " .. contextKey)
+    currentPotionContext = contextKey
+    if potionStatusLabelRef then
+        aas_setLabel(potionStatusLabelRef, "Context: " .. contextKey)
     end
 end
 
 function aas_pauseAllPotions()
     pcall(function()
         local data = aas_getPlayerDataFunc:InvokeServer()
-        if data and type(data.ActivePotions) == "table" then S.activePotions = data.ActivePotions end
+        if data and type(data.ActivePotions) == "table" then activePotions = data.ActivePotions end
     end)
-    for potionId, potionState in pairs(S.activePotions) do
+    for potionId, potionState in pairs(activePotions) do
         if not potionState.Paused then
             pcall(function() aas_potionPauseToggleRemote:Fire(potionId) end)
             task.wait(0.15)
@@ -1425,20 +1744,20 @@ function aas_pauseAllPotions()
 end
 
 function aas_enterPotionContext(contextKey)
-    if not S.potionContextEnabled then return end
-    if S.currentPotionContext == contextKey then return end
+    if not potionContextEnabled then return end
+    if currentPotionContext == contextKey then return end
     aas_applyPotionContext(contextKey)
 end
 
 function aas_clearPotionContext()
-    if not S.potionContextEnabled then return end
-    S.currentPotionContext = nil
-    if S.potionStatusLabelRef then S.potionStatusLabelRef:SetText("Context: Idle") end
+    if not potionContextEnabled then return end
+    currentPotionContext = nil
+    if potionStatusLabelRef then aas_setLabel(potionStatusLabelRef, "Context: Idle") end
     aas_pauseAllPotions()
 end
 
 function aas_autoUsePotionLoop()
-    while S.potionAutoUseEnabled do
+    while potionAutoUseEnabled do
         local opt = Options["PotionAutoUseSelect"]
         if opt then
             for potionId, state in pairs(opt.Value or {}) do
@@ -1462,64 +1781,64 @@ end
 function aas_snapshotAndPauseActivities()
     local snapshot = { farmWasActive=false, raidKey=nil, defenseKey=nil, dungeonKey=nil, rushKey=nil }
 
-    if S.farmEnabled then
+    if farmEnabled then
         snapshot.farmWasActive = true
-        S.farmEnabled = false
-        if S.farmThread then task.cancel(S.farmThread) S.farmThread = nil end
-        S.currentWorldTracked = nil
+        farmEnabled = false
+        if farmThread then task.cancel(farmThread) farmThread = nil end
+        currentWorldTracked = nil
     end
 
-    if S.activeRaidKey then
-        snapshot.raidKey = S.activeRaidKey
-        local rk = S.activeRaidKey
-        S.raidEnabled[rk] = false S.activeRaidKey = nil
-        if S.raidThread then task.cancel(S.raidThread) S.raidThread = nil end
+    if activeRaidKey then
+        snapshot.raidKey = activeRaidKey
+        local rk = activeRaidKey
+        raidEnabled[rk] = false activeRaidKey = nil
+        if raidThread then task.cancel(raidThread) raidThread = nil end
         if aas_raidArenaExists(rk) then pcall(function() aas_raidLeaveRemote:Fire() end) end
         task.wait(1)
     end
 
-    if S.activeDefenseKey then
-        snapshot.defenseKey = S.activeDefenseKey
-        local dk = S.activeDefenseKey
-        S.defenseEnabled[dk] = false S.activeDefenseKey = nil
-        if S.defenseThread then task.cancel(S.defenseThread) S.defenseThread = nil end
+    if activeDefenseKey then
+        snapshot.defenseKey = activeDefenseKey
+        local dk = activeDefenseKey
+        defenseEnabled[dk] = false activeDefenseKey = nil
+        if defenseThread then task.cancel(defenseThread) defenseThread = nil end
         if aas_defenseArenaExists(dk) then pcall(function() aas_defenseLeaveRemote:Fire() end) end
         task.wait(1)
     end
 
-    if S.activeDungeonKey then
-        snapshot.dungeonKey = S.activeDungeonKey
-        local dunk = S.activeDungeonKey
-        S.dungeonEnabled[dunk] = false S.activeDungeonKey = nil
-        if S.dungeonThreads[dunk] then task.cancel(S.dungeonThreads[dunk]) S.dungeonThreads[dunk] = nil end
+    if activeDungeonKey then
+        snapshot.dungeonKey = activeDungeonKey
+        local dunk = activeDungeonKey
+        dungeonEnabled[dunk] = false activeDungeonKey = nil
+        if dungeonThreads[dunk] then task.cancel(dungeonThreads[dunk]) dungeonThreads[dunk] = nil end
         if aas_dungeonArenaExists(dunk) then pcall(function() aas_dungeonLeaveRemote:Fire() end) end
         task.wait(1)
     end
 
-    if S.globalQuestEnabled then
+    if globalQuestEnabled then
         snapshot.globalQuestWasActive = true
-        S.globalQuestEnabled = false
-        if S.globalQuestThread then task.cancel(S.globalQuestThread) S.globalQuestThread = nil end
-        S.globalQuestCurrentTarget = nil S.globalQuestCurrentAction = nil
+        globalQuestEnabled = false
+        if globalQuestThread then task.cancel(globalQuestThread) globalQuestThread = nil end
+        globalQuestCurrentTarget = nil globalQuestCurrentAction = nil
     end
 
-    if S.activeRushKey then
-        snapshot.rushKey = S.activeRushKey
-        local rk = S.activeRushKey
-        S.rushEnabled[rk] = false S.activeRushKey = nil
-        if S.rushThreads[rk] then task.cancel(S.rushThreads[rk]) S.rushThreads[rk] = nil end
+    if activeRushKey then
+        snapshot.rushKey = activeRushKey
+        local rk = activeRushKey
+        rushEnabled[rk] = false activeRushKey = nil
+        if rushThreads[rk] then task.cancel(rushThreads[rk]) rushThreads[rk] = nil end
         pcall(function() aas_bossRushLeaveRemote:Fire() end)
         task.wait(1)
     end
 
     snapshot.spawnBossKeys = {}
-    for _, bossId in ipairs(S.sortedSpawnBossKeys) do
-        if S.spawnBossEnabled[bossId] then
+    for _, bossId in ipairs(sortedSpawnBossKeys) do
+        if spawnBossEnabled[bossId] then
             table.insert(snapshot.spawnBossKeys, bossId)
-            S.spawnBossEnabled[bossId] = false
-            if S.spawnBossThreads[bossId] then
-                task.cancel(S.spawnBossThreads[bossId])
-                S.spawnBossThreads[bossId] = nil
+            spawnBossEnabled[bossId] = false
+            if spawnBossThreads[bossId] then
+                task.cancel(spawnBossThreads[bossId])
+                spawnBossThreads[bossId] = nil
             end
         end
     end
@@ -1530,9 +1849,9 @@ end
 function aas_resumeIndependentThreads(snapshot)
     if snapshot and snapshot.globalQuestWasActive then
         if Toggles["GQFarmerEnabled"] and Toggles["GQFarmerEnabled"].Value then
-            S.globalQuestEnabled = true
-            if S.globalQuestThread then task.cancel(S.globalQuestThread) end
-            S.globalQuestThread = task.spawn(aas_globalQuestLoop)
+            globalQuestEnabled = true
+            if globalQuestThread then task.cancel(globalQuestThread) end
+            globalQuestThread = task.spawn(aas_globalQuestLoop)
         end
     end
 end
@@ -1541,18 +1860,18 @@ function aas_resumeFromSnapshot(snapshot)
     if not snapshot then return end
     task.wait(1)
 
-    for _, tk in ipairs(S.sortedTrialKeys) do
-        if S.trialEnabled[tk] and aas_trialArenaExists(tk) then
+    for _, tk in ipairs(sortedTrialKeys) do
+        if trialEnabled[tk] and aas_trialArenaExists(tk) then
             aas_resumeIndependentThreads(snapshot)
             return
         end
     end
-    if S.gateEnabled and aas_gateArenaExists() then
+    if gateEnabled and aas_gateArenaExists() then
         aas_resumeIndependentThreads(snapshot)
         return
     end
-    for _, dk in ipairs(S.sortedDungeonKeys) do
-        if S.dungeonEnabled[dk] and aas_dungeonArenaExists(dk) then
+    for _, dk in ipairs(sortedDungeonKeys) do
+        if dungeonEnabled[dk] and aas_dungeonArenaExists(dk) then
             aas_resumeIndependentThreads(snapshot)
             return
         end
@@ -1561,75 +1880,75 @@ function aas_resumeFromSnapshot(snapshot)
     task.wait(1)
 
     if snapshot.farmWasActive then
-        local farmStat = S.LoadoutAssignments.Farm or "Power"
+        local farmStat = LoadoutAssignments.Farm or "Power"
         aas_equipLoadout(farmStat)
         aas_enterPotionContext("Farm")
-        S.farmEnabled = true
-        if S.farmThread then task.cancel(S.farmThread) end
-        S.farmThread = task.spawn(aas_farmLoop)
+        farmEnabled = true
+        if farmThread then task.cancel(farmThread) end
+        farmThread = task.spawn(aas_farmLoop)
     end
 
     if snapshot.raidKey then
         local rk = snapshot.raidKey
-        if Toggles["AutoRaid_"..rk] and Toggles["AutoRaid_"..rk].Value then
-            aas_equipLoadout(S.RaidLoadouts[rk] or "Power")
+        if Toggles["AutoRaid"] and Toggles["AutoRaid"].Value then
+            aas_equipLoadout(RaidLoadouts[rk] or "Power")
             aas_enterPotionContext("Raid_"..rk)
-            S.raidEnabled[rk] = true S.activeRaidKey = rk
-            if S.raidThread then task.cancel(S.raidThread) end
-            S.raidThread = task.spawn(function() aas_raidLoop(rk) end)
+            raidEnabled[rk] = true activeRaidKey = rk
+            if raidThread then task.cancel(raidThread) end
+            raidThread = task.spawn(function() aas_raidLoop(rk) end)
         end
     end
 
     if snapshot.defenseKey then
         local dk = snapshot.defenseKey
-        if Toggles["AutoDefense_"..dk] and Toggles["AutoDefense_"..dk].Value then
-            local defData = S.DefenseList[dk]
+        if Toggles["AutoDefense"] and Toggles["AutoDefense"].Value then
+            local defData = DefenseList[dk]
             if defData and defData.WorldId then pcall(function() aas_requestChangeWorldRemote:Fire(defData.WorldId) end) task.wait(3) end
-            aas_equipLoadout(S.DefenseLoadouts[dk] or "Power")
+            aas_equipLoadout(DefenseLoadouts[dk] or "Power")
             aas_enterPotionContext("Defense_"..dk)
-            S.defenseEnabled[dk] = true S.activeDefenseKey = dk
-            if S.defenseThread then task.cancel(S.defenseThread) end
-            S.defenseThread = task.spawn(function() aas_defenseLoop(dk) end)
+            defenseEnabled[dk] = true activeDefenseKey = dk
+            if defenseThread then task.cancel(defenseThread) end
+            defenseThread = task.spawn(function() aas_defenseLoop(dk) end)
         end
     end
 
     if snapshot.dungeonKey then
         local dunk = snapshot.dungeonKey
         if Toggles["AutoDungeon_"..dunk] and Toggles["AutoDungeon_"..dunk].Value then
-            aas_equipLoadout(S.DungeonLoadouts[dunk] or "Power")
+            aas_equipLoadout(DungeonLoadouts[dunk] or "Power")
             aas_enterPotionContext("Dungeon_"..dunk)
-            S.dungeonEnabled[dunk] = true S.activeDungeonKey = dunk
-            if S.dungeonThreads[dunk] then task.cancel(S.dungeonThreads[dunk]) end
-            S.dungeonThreads[dunk] = task.spawn(function() aas_dungeonLoop(dunk) end)
+            dungeonEnabled[dunk] = true activeDungeonKey = dunk
+            if dungeonThreads[dunk] then task.cancel(dungeonThreads[dunk]) end
+            dungeonThreads[dunk] = task.spawn(function() aas_dungeonLoop(dunk) end)
         end
     end
 
     if snapshot.rushKey then
         local rk = snapshot.rushKey
-        if Toggles["AutoRush_"..rk] and Toggles["AutoRush_"..rk].Value then
-            aas_equipLoadout(S.RushLoadouts[rk] or "Power")
+        if Toggles["AutoRush"] and Toggles["AutoRush"].Value then
+            aas_equipLoadout(RushLoadouts[rk] or "Power")
             aas_enterPotionContext("Rush_"..rk)
-            S.rushEnabled[rk] = true S.activeRushKey = rk
-            if S.rushThreads[rk] then task.cancel(S.rushThreads[rk]) end
-            S.rushThreads[rk] = task.spawn(function() aas_rushLoop(rk) end)
+            rushEnabled[rk] = true activeRushKey = rk
+            if rushThreads[rk] then task.cancel(rushThreads[rk]) end
+            rushThreads[rk] = task.spawn(function() aas_rushLoop(rk) end)
         end
     end
 
     if snapshot.spawnBossKeys then
         for _, bossId in ipairs(snapshot.spawnBossKeys) do
-            if Toggles["AutoSpawnBoss_" .. bossId] and Toggles["AutoSpawnBoss_" .. bossId].Value then
-                S.spawnBossEnabled[bossId] = true
-                if S.spawnBossThreads[bossId] then task.cancel(S.spawnBossThreads[bossId]) end
-                S.spawnBossThreads[bossId] = task.spawn(function() aas_spawnBossLoop(bossId) end)
+            if Toggles["AutoSpawnBoss"] and Toggles["AutoSpawnBoss"].Value then
+                spawnBossEnabled[bossId] = true
+                if spawnBossThreads[bossId] then task.cancel(spawnBossThreads[bossId]) end
+                spawnBossThreads[bossId] = task.spawn(function() aas_spawnBossLoop(bossId) end)
             end
         end
     end
 
     if snapshot.globalQuestWasActive then
         if Toggles["GQFarmerEnabled"] and Toggles["GQFarmerEnabled"].Value then
-            S.globalQuestEnabled = true
-            if S.globalQuestThread then task.cancel(S.globalQuestThread) end
-            S.globalQuestThread = task.spawn(aas_globalQuestLoop)
+            globalQuestEnabled = true
+            if globalQuestThread then task.cancel(globalQuestThread) end
+            globalQuestThread = task.spawn(aas_globalQuestLoop)
         end
     end
 end
@@ -1698,7 +2017,7 @@ end
 -- ══════════════════════════════════════════
 
 function aas_getSelectedForWorld(worldIdx)
-    local key = S.worldDropdowns[worldIdx]
+    local key = worldDropdowns[worldIdx]
     if not key then return {} end
     local opt = Options[key]
     if not opt then return {} end
@@ -1711,7 +2030,7 @@ end
 
 function aas_getWorldsWithSelections()
     local worlds = {}
-    for _, worldIdx in ipairs(S.sortedWorldIndices) do
+    for _, worldIdx in ipairs(sortedWorldIndices) do
         if #aas_getSelectedForWorld(worldIdx) > 0 then table.insert(worlds, worldIdx) end
     end
     return worlds
@@ -1753,16 +2072,16 @@ function aas_preloadWorld7Boss()
 end
 
 function aas_farmLoop()
-    S.currentWorldTracked = nil
-    while S.farmEnabled do
+    currentWorldTracked = nil
+    while farmEnabled do
         local worlds = aas_getWorldsWithSelections()
         if #worlds == 0 then task.wait(0.5) continue end
 
         for _, worldIdx in ipairs(worlds) do
-            if not S.farmEnabled then break end
-            if S.currentWorldTracked ~= worldIdx then
+            if not farmEnabled then break end
+            if currentWorldTracked ~= worldIdx then
                 aas_teleportToWorld(worldIdx)
-                S.currentWorldTracked = worldIdx
+                currentWorldTracked = worldIdx
             end
             local selectedNames = aas_getSelectedForWorld(worldIdx)
             if #selectedNames == 0 then continue end
@@ -1791,7 +2110,7 @@ function aas_farmLoop()
             end
             if #aliveMobs == 0 then task.wait(0.5) continue end
 
-            if S.clusterFarmEnabled then
+            if clusterFarmEnabled then
                 local centerPos, cluster = aas_getClusterCenter(aliveMobs, 40, 1)
                 if centerPos then
                     aas_teleportToClusterCenter(centerPos)
@@ -1800,7 +2119,7 @@ function aas_farmLoop()
                 task.wait(0.05)
             else
                 for _, mob in ipairs(aliveMobs) do
-                    if not S.farmEnabled then break end
+                    if not farmEnabled then break end
                     if not mob.Parent or mob:GetAttribute("EnemyDead") == true then continue end
                     aas_teleportToMob(mob)
                     aas_waitForDead(mob, 25)
@@ -1810,7 +2129,7 @@ function aas_farmLoop()
         end
         task.wait(0.05)
     end
-    S.currentWorldTracked = nil
+    currentWorldTracked = nil
 end
 
 -- ══════════════════════════════════════════
@@ -1825,11 +2144,8 @@ function aas_getCurrentRaidWave()
 end
 
 function aas_getRaidLeaveAtWave(raidKey)
-    local opt = Options["RaidLeaveWave_"..raidKey]
-    if not opt then return 0 end
-    local v = tostring(opt.Value or "")
-    if v:match("Never") then return 0 end
-    return tonumber(v:match("%d+")) or 0
+    local opt = Options["RaidLeaveWave"]
+    return (opt and tonumber(opt.Value)) or 0
 end
 
 function aas_getRaidEnemiesFolder(raidKey)
@@ -1855,9 +2171,9 @@ function aas_waitForRaidArena(raidKey, timeoutSecs)
 end
 
 function aas_disableOtherRaids(exceptKey)
-    for _, rk in ipairs(S.sortedRaidKeys) do
-        if rk ~= exceptKey and S.raidEnabled[rk] then
-            S.raidEnabled[rk] = false
+    for _, rk in ipairs(sortedRaidKeys) do
+        if rk ~= exceptKey and raidEnabled[rk] then
+            raidEnabled[rk] = false
             local tk = "AutoRaid_"..rk
             if Toggles[tk] then Toggles[tk]:SetValue(false) end
         end
@@ -1865,44 +2181,44 @@ function aas_disableOtherRaids(exceptKey)
 end
 
 function aas_disableAllDefenses()
-    for _, dk in ipairs(S.sortedDefenseKeys) do
-        if S.defenseEnabled[dk] then
-            S.defenseEnabled[dk] = false
+    for _, dk in ipairs(sortedDefenseKeys) do
+        if defenseEnabled[dk] then
+            defenseEnabled[dk] = false
             local tk = "AutoDefense_"..dk
             if Toggles[tk] then Toggles[tk]:SetValue(false) end
         end
     end
-    if S.defenseThread then task.cancel(S.defenseThread) S.defenseThread = nil end
-    S.activeDefenseKey = nil
+    if defenseThread then task.cancel(defenseThread) defenseThread = nil end
+    activeDefenseKey = nil
 end
 
 function aas_raidLoop(raidKey)
-    local raidData = S.RaidList[raidKey]
+    local raidData = RaidList[raidKey]
     if not raidData then return end
-    aas_equipLoadout(S.RaidLoadouts[raidKey] or "Power")
+    aas_equipLoadout(RaidLoadouts[raidKey] or "Power")
     aas_enterPotionContext("Raid_"..raidKey)
     aas_joinOrCreateRaid(raidKey) aas_waitForRaidArena(raidKey, 10) task.wait(5)
-    while S.raidEnabled[raidKey] do
+    while raidEnabled[raidKey] do
         local leaveAt = aas_getRaidLeaveAtWave(raidKey)
         if leaveAt > 0 then
             local cw = aas_getCurrentRaidWave()
             if cw > 0 and cw >= leaveAt then
                 aas_leaveRaid() task.wait(6)
-                if not S.raidEnabled[raidKey] then break end
+                if not raidEnabled[raidKey] then break end
                 aas_joinOrCreateRaid(raidKey) aas_waitForRaidArena(raidKey, 10) task.wait(5) continue
             end
         end
         if not aas_raidArenaExists(raidKey) then
             task.wait(6)
-            if not S.raidEnabled[raidKey] then break end
+            if not raidEnabled[raidKey] then break end
             aas_joinOrCreateRaid(raidKey) aas_waitForRaidArena(raidKey, 10) task.wait(5) continue
         end
-        if S.raidOptimizedFarm then task.wait(0.5)
+        if raidOptimizedFarm then task.wait(0.5)
         else
             local mobs = aas_findMobsInFolder(aas_getRaidEnemiesFolder(raidKey), nil)
             if #mobs == 0 then task.wait(0.5) continue end
             for _, mob in ipairs(mobs) do
-                if not S.raidEnabled[raidKey] then break end
+                if not raidEnabled[raidKey] then break end
                 if not aas_raidArenaExists(raidKey) then break end
                 if not mob.Parent or mob:GetAttribute("EnemyDead") == true then continue end
                 aas_teleportToMob(mob) aas_waitForDead(mob, 15) task.wait(0.05)
@@ -1911,7 +2227,7 @@ function aas_raidLoop(raidKey)
         task.wait(0.05)
     end
     if aas_raidArenaExists(raidKey) then aas_leaveRaid() end
-    S.activeRaidKey = nil
+    activeRaidKey = nil
 end
 
 -- DEFENSE
@@ -1922,11 +2238,8 @@ function aas_getCurrentDefenseWave()
 end
 
 function aas_getDefenseLeaveAtWave(defKey)
-    local opt = Options["DefLeaveWave_"..defKey]
-    if not opt then return 0 end
-    local v = tostring(opt.Value or "")
-    if v:match("Never") then return 0 end
-    return tonumber(v:match("%d+")) or 0
+    local opt = Options["DefLeaveWave"]
+    return (opt and tonumber(opt.Value)) or 0
 end
 
 function aas_getDefenseEnemiesFolder(defKey)
@@ -1952,30 +2265,30 @@ function aas_waitForDefenseArena(defKey, timeoutSecs)
 end
 
 function aas_defenseLoop(defKey)
-    local defData = S.DefenseList[defKey]
+    local defData = DefenseList[defKey]
     if not defData then return end
-    aas_equipLoadout(S.DefenseLoadouts[defKey] or "Power")
+    aas_equipLoadout(DefenseLoadouts[defKey] or "Power")
     aas_enterPotionContext("Defense_"..defKey)
     aas_joinOrCreateDefense(defKey) aas_waitForDefenseArena(defKey, 10) task.wait(5)
-    while S.defenseEnabled[defKey] do
+    while defenseEnabled[defKey] do
         local leaveAt = aas_getDefenseLeaveAtWave(defKey)
         if leaveAt > 0 then
             local cw = aas_getCurrentDefenseWave()
             if cw > 0 and cw >= leaveAt then
                 aas_leaveDefense() task.wait(6)
-                if not S.defenseEnabled[defKey] then break end
+                if not defenseEnabled[defKey] then break end
                 aas_joinOrCreateDefense(defKey) aas_waitForDefenseArena(defKey, 10) task.wait(5) continue
             end
         end
         if not aas_defenseArenaExists(defKey) then
             task.wait(6)
-            if not S.defenseEnabled[defKey] then break end
+            if not defenseEnabled[defKey] then break end
             aas_joinOrCreateDefense(defKey) aas_waitForDefenseArena(defKey, 10) task.wait(5) continue
         end
         local mobs = aas_findMobsInFolder(aas_getDefenseEnemiesFolder(defKey), nil)
         if #mobs == 0 then task.wait(0.5) continue end
         for _, mob in ipairs(mobs) do
-            if not S.defenseEnabled[defKey] then break end
+            if not defenseEnabled[defKey] then break end
             if not aas_defenseArenaExists(defKey) then break end
             if not mob.Parent or mob:GetAttribute("EnemyDead") == true then continue end
             aas_teleportToMob(mob) aas_waitForDead(mob, 15) task.wait(0.05)
@@ -1983,7 +2296,7 @@ function aas_defenseLoop(defKey)
         task.wait(0.05)
     end
     if aas_defenseArenaExists(defKey) then aas_leaveDefense() end
-    S.activeDefenseKey = nil
+    activeDefenseKey = nil
 end
 
 -- DUNGEON
@@ -2020,48 +2333,48 @@ function aas_waitForDungeonArena(dungeonKey, timeoutSecs)
 end
 
 function aas_dungeonLoop(dungeonKey)
-    local dungeonData = S.DungeonList[dungeonKey]
+    local dungeonData = DungeonList[dungeonKey]
     if not dungeonData then return end
 
-    while S.dungeonEnabled[dungeonKey] do
-        if S.dungeonSuppressedByPriority then
+    while dungeonEnabled[dungeonKey] do
+        if dungeonSuppressedByPriority then
             local stillSuppressed = false
             if aas_hasHigherPriority("Trial", "Dungeon") then
-                for _, tk in ipairs(S.sortedTrialKeys) do
-                    if S.trialEnabled[tk] and aas_trialArenaExists(tk) then stillSuppressed = true break end
+                for _, tk in ipairs(sortedTrialKeys) do
+                    if trialEnabled[tk] and aas_trialArenaExists(tk) then stillSuppressed = true break end
                 end
             end
             if not stillSuppressed and aas_hasHigherPriority("Gate", "Dungeon") then
-                if S.gateEnabled and aas_gateArenaExists() then stillSuppressed = true end
+                if gateEnabled and aas_gateArenaExists() then stillSuppressed = true end
             end
             if stillSuppressed then task.wait(1) continue
-            else S.dungeonSuppressedByPriority = false end
+            else dungeonSuppressedByPriority = false end
         end
 
         if not aas_dungeonArenaExists(dungeonKey) then task.wait(1) continue end
 
         local conflictActivity = aas_monitorForConflicts("Dungeon", AAS_PRIORITY_WINDOW)
         if conflictActivity then
-            S.dungeonSuppressedByPriority = true
-            Library:Notify("Priority: " .. conflictActivity .. " - Dungeon suppressed.")
+            dungeonSuppressedByPriority = true
+            Window:Notify({ Title = "Euclidean", Content = "Priority: " .. conflictActivity .. " - Dungeon suppressed.", Duration = 3, Type = "Info" })
             task.wait(1) continue
         end
 
         local sessionSnapshot = aas_snapshotAndPauseActivities()
-        aas_equipLoadout(S.DungeonLoadouts[dungeonKey] or "Power")
+        aas_equipLoadout(DungeonLoadouts[dungeonKey] or "Power")
         aas_enterPotionContext("Dungeon_"..dungeonKey)
         aas_joinDungeon(dungeonKey)
 
         local arenaLoaded = aas_waitForDungeonArena(dungeonKey, 15)
         if not arenaLoaded then
-            Library:Notify(dungeonData.Name .. " - Arena did not load. Skipping.")
+            Window:Notify({ Title = "Euclidean", Content = dungeonData.Name .. " - Arena did not load. Skipping.", Duration = 3, Type = "Info" })
             aas_resumeFromSnapshot(sessionSnapshot) task.wait(3) continue
         end
 
-        task.wait(3) S.activeDungeonKey = dungeonKey
+        task.wait(3) activeDungeonKey = dungeonKey
         local sessionActive, needsLeave = true, false
 
-        while S.dungeonEnabled[dungeonKey] and sessionActive do
+        while dungeonEnabled[dungeonKey] and sessionActive do
             if not aas_dungeonArenaExists(dungeonKey) then sessionActive = false needsLeave = false break end
             local leaveAt = aas_getDungeonLeaveAtRoom(dungeonKey)
             if leaveAt > 0 then
@@ -2071,7 +2384,7 @@ function aas_dungeonLoop(dungeonKey)
             local mobs = aas_findMobsInFolder(aas_getDungeonEnemiesFolder(dungeonKey), nil)
             if #mobs == 0 then task.wait(0.2) continue end
             for _, mob in ipairs(mobs) do
-                if not S.dungeonEnabled[dungeonKey] then sessionActive = false break end
+                if not dungeonEnabled[dungeonKey] then sessionActive = false break end
                 if not aas_dungeonArenaExists(dungeonKey) then sessionActive = false break end
                 if not mob.Parent or mob:GetAttribute("EnemyDead") == true then continue end
                 aas_teleportToMob(mob) aas_waitForDead(mob, 15) task.wait(0.05)
@@ -2080,11 +2393,11 @@ function aas_dungeonLoop(dungeonKey)
         end
 
         if needsLeave and aas_dungeonArenaExists(dungeonKey) then aas_leaveDungeon() task.wait(5) end
-        S.activeDungeonKey = nil
-        S.dungeonSuppressedByPriority = false S.trialSuppressedByPriority = false S.gateSuppressedByPriority = false
+        activeDungeonKey = nil
+        dungeonSuppressedByPriority = false trialSuppressedByPriority = false gateSuppressedByPriority = false
         task.wait(0.5) aas_resumeFromSnapshot(sessionSnapshot) task.wait(3)
     end
-    S.activeDungeonKey = nil S.dungeonSuppressedByPriority = false
+    activeDungeonKey = nil dungeonSuppressedByPriority = false
 end
 
 -- BOSS RUSH
@@ -2130,24 +2443,24 @@ function aas_collectFingers(arena)
 end
 
 function aas_rushLoop(rushKey)
-    local rushData = S.RushList[rushKey]
+    local rushData = RushList[rushKey]
     if not rushData then return end
-    local modeOpt = Options["RushMode_"..rushKey]
+    local modeOpt = Options["RushMode"]
     local modeId = modeOpt and modeOpt.Value or "V1"
-    aas_equipLoadout(S.RushLoadouts[rushKey] or "Power")
+    aas_equipLoadout(RushLoadouts[rushKey] or "Power")
     aas_enterPotionContext("Rush_"..rushKey)
     aas_joinOrCreateRush(rushKey, modeId) task.wait(5)
 
-    while S.rushEnabled[rushKey] do
+    while rushEnabled[rushKey] do
         local exists, arena = aas_rushArenaExists(rushKey)
         if not exists then
             task.wait(6)
-            if not S.rushEnabled[rushKey] then break end
-            modeId = Options["RushMode_"..rushKey] and Options["RushMode_"..rushKey].Value or "V1"
+            if not rushEnabled[rushKey] then break end
+            modeId = Options["RushMode"] and Options["RushMode"].Value or "V1"
             aas_joinOrCreateRush(rushKey, modeId) task.wait(5) continue
         end
 
-        local leaveOpt = Options["RushLeaveWave_"..rushKey]
+        local leaveOpt = Options["RushLeaveWave"]
         local leaveAt = tonumber(leaveOpt and leaveOpt.Value) or 0
         if leaveAt > 0 then
             local cw = aas_getCurrentRushWave()
@@ -2155,14 +2468,14 @@ function aas_rushLoop(rushKey)
         end
 
         if aas_collectFingers(arena) then continue end
-        if not S.rushEnabled[rushKey] then break end
+        if not rushEnabled[rushKey] then break end
 
         local enemiesFolder = arena:FindFirstChild("Enemies")
         local mobs = aas_findMobsInFolder(enemiesFolder, nil)
         if #mobs == 0 then task.wait(0.5) continue end
 
         for _, mob in ipairs(mobs) do
-            if not S.rushEnabled[rushKey] then break end
+            if not rushEnabled[rushKey] then break end
             if not aas_rushArenaExists(rushKey) then break end
             local waveNow = aas_getCurrentRushWave()
             if leaveAt > 0 and waveNow > 0 and waveNow >= leaveAt then break end
@@ -2173,15 +2486,15 @@ function aas_rushLoop(rushKey)
         task.wait(0.05)
     end
     if aas_rushArenaExists(rushKey) then aas_leaveRush() end
-    S.activeRushKey = nil
+    activeRushKey = nil
 end
 
 -- SPAWN BOSS
 function aas_spawnBossLoop(bossId)
-    local bossData = S.SpawnBossList[bossId]
+    local bossData = SpawnBossList[bossId]
     if not bossData then return end
 
-    while S.spawnBossEnabled[bossId] do
+    while spawnBossEnabled[bossId] do
         local highPrio, highType = aas_isHighPrioritySpawnOrRunPresent()
         if highPrio then
             task.wait(1)
@@ -2249,39 +2562,39 @@ function aas_joinTrial(trialKey) pcall(function() aas_trialJoinRemote:Fire("Join
 function aas_leaveTrial() pcall(function() aas_trialLeaveRemote:Fire() end) end
 
 function aas_trialLoop(trialKey)
-    local trialData = S.TrialList[trialKey]
+    local trialData = TrialList[trialKey]
     if not trialData then return end
 
-    while S.trialEnabled[trialKey] do
-        if S.trialSuppressedByPriority then
+    while trialEnabled[trialKey] do
+        if trialSuppressedByPriority then
             local stillSuppressed = false
-            if aas_hasHigherPriority("Gate", "Trial") and S.gateEnabled and aas_gateArenaExists() then stillSuppressed = true end
+            if aas_hasHigherPriority("Gate", "Trial") and gateEnabled and aas_gateArenaExists() then stillSuppressed = true end
             if not stillSuppressed and aas_hasHigherPriority("Dungeon", "Trial") then
-                for _, dk in ipairs(S.sortedDungeonKeys) do
-                    if S.dungeonEnabled[dk] and aas_dungeonArenaExists(dk) then stillSuppressed = true break end
+                for _, dk in ipairs(sortedDungeonKeys) do
+                    if dungeonEnabled[dk] and aas_dungeonArenaExists(dk) then stillSuppressed = true break end
                 end
             end
             if stillSuppressed then task.wait(1) continue
-            else S.trialSuppressedByPriority = false end
+            else trialSuppressedByPriority = false end
         end
 
         if not aas_trialArenaExists(trialKey) then task.wait(1) continue end
 
         local conflictActivity = aas_monitorForConflicts("Trial", AAS_PRIORITY_WINDOW)
         if conflictActivity then
-            S.trialSuppressedByPriority = true
-            Library:Notify("Priority: " .. conflictActivity .. " - Trial suppressed.")
+            trialSuppressedByPriority = true
+            Window:Notify({ Title = "Euclidean", Content = "Priority: " .. conflictActivity .. " - Trial suppressed.", Duration = 3, Type = "Info" })
             task.wait(0.05) continue
         end
 
         local sessionSnapshot = aas_snapshotAndPauseActivities()
-        aas_equipLoadout(S.TrialLoadouts[trialKey] or "Power")
+        aas_equipLoadout(TrialLoadouts[trialKey] or "Power")
         aas_enterPotionContext("Trial_"..trialKey)
         aas_joinTrial(trialKey) task.wait(5)
 
         local sessionActive, needsLeave = true, false
 
-        while S.trialEnabled[trialKey] and sessionActive do
+        while trialEnabled[trialKey] and sessionActive do
             if not aas_trialArenaExists(trialKey) then sessionActive = false needsLeave = false break end
             local leaveAt = aas_getTrialLeaveAtRoom(trialKey)
             if leaveAt > 0 then
@@ -2291,7 +2604,7 @@ function aas_trialLoop(trialKey)
             local mobs = aas_findMobsInFolder(aas_getTrialEnemiesFolder(trialKey), nil)
             if #mobs == 0 then task.wait(0.1) continue end
             for _, mob in ipairs(mobs) do
-                if not S.trialEnabled[trialKey] then sessionActive = false break end
+                if not trialEnabled[trialKey] then sessionActive = false break end
                 if not aas_trialArenaExists(trialKey) then sessionActive = false break end
                 if not mob.Parent or mob:GetAttribute("EnemyDead") == true then continue end
                 aas_teleportToMob(mob) aas_waitForDead(mob, 15) task.wait(0.05)
@@ -2300,10 +2613,10 @@ function aas_trialLoop(trialKey)
         end
 
         if needsLeave and aas_trialArenaExists(trialKey) then aas_leaveTrial() task.wait(5) end
-        S.trialSuppressedByPriority = false S.gateSuppressedByPriority = false S.dungeonSuppressedByPriority = false
+        trialSuppressedByPriority = false gateSuppressedByPriority = false dungeonSuppressedByPriority = false
         task.wait(0.5) aas_resumeFromSnapshot(sessionSnapshot) task.wait(1)
     end
-    S.trialSuppressedByPriority = false
+    trialSuppressedByPriority = false
 end
 
 -- GATE
@@ -2405,23 +2718,23 @@ function aas_teleportToBaruke1()
 end
 
 function aas_gateLoop()
-    while S.gateEnabled do
-        if S.gateCooldown then task.wait(1) continue end
+    while gateEnabled do
+        if gateCooldown then task.wait(1) continue end
         if not aas_isWorld5SystemsLoaded() then task.wait(1) continue end
 
-        if S.gateSuppressedByPriority then
+        if gateSuppressedByPriority then
             local stillSuppressed = false
             if aas_hasHigherPriority("Trial", "Gate") then
-                for _, tk in ipairs(S.sortedTrialKeys) do
-                    if S.trialEnabled[tk] and aas_trialArenaExists(tk) then stillSuppressed = true break end
+                for _, tk in ipairs(sortedTrialKeys) do
+                    if trialEnabled[tk] and aas_trialArenaExists(tk) then stillSuppressed = true break end
                 end
             end
             if not stillSuppressed and aas_hasHigherPriority("Dungeon", "Gate") then
-                for _, dk in ipairs(S.sortedDungeonKeys) do
-                    if S.dungeonEnabled[dk] and aas_dungeonArenaExists(dk) then stillSuppressed = true break end
+                for _, dk in ipairs(sortedDungeonKeys) do
+                    if dungeonEnabled[dk] and aas_dungeonArenaExists(dk) then stillSuppressed = true break end
                 end
             end
-            if stillSuppressed then task.wait(1) continue else S.gateSuppressedByPriority = false end
+            if stillSuppressed then task.wait(1) continue else gateSuppressedByPriority = false end
         end
 
         if not aas_isActiveGatePresent() then task.wait(0.5) continue end
@@ -2430,8 +2743,8 @@ function aas_gateLoop()
 
         local conflictActivity = aas_monitorForConflicts("Gate", AAS_PRIORITY_WINDOW)
         if conflictActivity then
-            S.gateSuppressedByPriority = true
-            Library:Notify("Priority: " .. conflictActivity .. " - Gate suppressed.")
+            gateSuppressedByPriority = true
+            Window:Notify({ Title = "Euclidean", Content = "Priority: " .. conflictActivity .. " - Gate suppressed.", Duration = 3, Type = "Info" })
             task.wait(1) continue
         end
 
@@ -2448,12 +2761,12 @@ function aas_gateLoop()
         end
 
         if not aas_gateArenaExists() then
-            Library:Notify("Auto Gate - Arena did not load. Skipping.")
+            Window:Notify({ Title = "Euclidean", Content = "Auto Gate - Arena did not load. Skipping.", Duration = 3, Type = "Info" })
             aas_resumeFromSnapshot(snapshot) task.wait(2) continue
         end
 
         local sessionActive = true
-        while S.gateEnabled and sessionActive do
+        while gateEnabled and sessionActive do
             if not aas_gateArenaExists() then sessionActive = false break end
             local leaveAt = aas_getGateLeaveAtWave(rank)
             if leaveAt > 0 then
@@ -2461,12 +2774,12 @@ function aas_gateLoop()
                 if cw > 0 and cw >= leaveAt then aas_leaveRaid() task.wait(5) sessionActive = false break end
             end
 
-            if S.gateOptimizedFarm then aas_teleportToBaruke1() task.wait(0.5)
+            if gateOptimizedFarm then aas_teleportToBaruke1() task.wait(0.5)
             else
                 local mobs = aas_findMobsInFolder(aas_getGateEnemiesFolder(), nil)
                 if #mobs == 0 then task.wait(0.5) continue end
                 for _, mob in ipairs(mobs) do
-                    if not S.gateEnabled then sessionActive = false break end
+                    if not gateEnabled then sessionActive = false break end
                     if not aas_gateArenaExists() then sessionActive = false break end
                     if not mob.Parent or mob:GetAttribute("EnemyDead") == true then continue end
                     aas_teleportToMob(mob) aas_waitForDead(mob, 15) task.wait(0.05)
@@ -2475,12 +2788,12 @@ function aas_gateLoop()
             task.wait(0.05)
         end
 
-        S.gateCooldown = true
-        task.spawn(function() task.wait(60) S.gateCooldown = false end)
-        S.gateSuppressedByPriority = false S.trialSuppressedByPriority = false S.dungeonSuppressedByPriority = false
+        gateCooldown = true
+        task.spawn(function() task.wait(60) gateCooldown = false end)
+        gateSuppressedByPriority = false trialSuppressedByPriority = false dungeonSuppressedByPriority = false
         task.wait(0.5) aas_resumeFromSnapshot(snapshot) task.wait(3)
     end
-    S.gateCooldown = false
+    gateCooldown = false
 end
 
 -- ══════════════════════════════════════════
@@ -2493,63 +2806,63 @@ function aas_getRarityIndex(rarityOrder, rarity)
 end
 
 function aas_updateSword1Labels()
-    if S.sword1InfoLabelRef then
-        if S.sword1Data then
-            local stars = string.rep("⭐", S.sword1Data.Level or 0)
+    if sword1InfoLabelRef then
+        if sword1Data then
+            local stars = string.rep("⭐", sword1Data.Level or 0)
             if stars == "" then stars = "0" end
-            pcall(function() S.sword1InfoLabelRef:SetText("Sword 1: "..tostring(S.sword1Data.Rarity).." | Stars: "..stars) end)
-        else pcall(function() S.sword1InfoLabelRef:SetText("Sword 1: Not Found") end) end
+            aas_setLabel(sword1InfoLabelRef, "Sword 1: "..tostring(sword1Data.Rarity).." | Stars: "..stars)
+        else aas_setLabel(sword1InfoLabelRef, "Sword 1: Not Found") end
     end
-    if S.sword1BreathingLabelRef then
-        local breathingText = S.sword1CurrentBreathing
-            and ("Breathing: "..tostring(S.sword1CurrentBreathing.Name or "Unknown").." ("..tostring(S.sword1CurrentBreathing.Rarity or "?")..")")
+    if sword1BreathingLabelRef then
+        local breathingText = sword1CurrentBreathing
+            and ("Breathing: "..tostring(sword1CurrentBreathing.Name or "Unknown").." ("..tostring(sword1CurrentBreathing.Rarity or "?")..")")
             or "Breathing: None"
-        pcall(function() S.sword1BreathingLabelRef:SetText(breathingText) end)
+        aas_setLabel(sword1BreathingLabelRef, breathingText)
     end
 end
 
 function aas_updateSword2Labels()
-    if S.sword2InfoLabelRef then
-        if S.sword2Data then
-            local stars = string.rep("⭐", S.sword2Data.Level or 0)
+    if sword2InfoLabelRef then
+        if sword2Data then
+            local stars = string.rep("⭐", sword2Data.Level or 0)
             if stars == "" then stars = "0" end
-            pcall(function() S.sword2InfoLabelRef:SetText("Sword 2: "..tostring(S.sword2Data.Rarity).." | Stars: "..stars) end)
-        else pcall(function() S.sword2InfoLabelRef:SetText("Sword 2: Not Found") end) end
+            aas_setLabel(sword2InfoLabelRef, "Sword 2: "..tostring(sword2Data.Rarity).." | Stars: "..stars)
+        else aas_setLabel(sword2InfoLabelRef, "Sword 2: Not Found") end
     end
-    if S.sword2BreathingLabelRef then
-        local breathingText = S.sword2CurrentBreathing
-            and ("Breathing: "..tostring(S.sword2CurrentBreathing.Name or "Unknown").." ("..tostring(S.sword2CurrentBreathing.Rarity or "?")..")")
+    if sword2BreathingLabelRef then
+        local breathingText = sword2CurrentBreathing
+            and ("Breathing: "..tostring(sword2CurrentBreathing.Name or "Unknown").." ("..tostring(sword2CurrentBreathing.Rarity or "?")..")")
             or "Breathing: None"
-        pcall(function() S.sword2BreathingLabelRef:SetText(breathingText) end)
+        aas_setLabel(sword2BreathingLabelRef, breathingText)
     end
 end
 
 function aas_updateGrimoireLabels()
-    if S.grimoire1LabelRef then pcall(function() S.grimoire1LabelRef:SetText("Slot 1: "..(S.activeGrimoireSlot1 or "None")) end) end
-    if S.grimoire2LabelRef then pcall(function() S.grimoire2LabelRef:SetText("Slot 2: "..(S.activeGrimoireSlot2 or "None")) end) end
+    if grimoire1LabelRef then aas_setLabel(grimoire1LabelRef, "Slot 1: "..(activeGrimoireSlot1 or "None")) end
+    if grimoire2LabelRef then aas_setLabel(grimoire2LabelRef, "Slot 2: "..(activeGrimoireSlot2 or "None")) end
 end
 
 function aas_updateProgressionLabels()
-    for _, progKey in ipairs(S.sortedProgressionKeys) do
-        local labelRef = S.progressionLevelLabelRefs[progKey]
+    for _, progKey in ipairs(sortedProgressionKeys) do
+        local labelRef = progressionLevelLabelRefs[progKey]
         if labelRef then
-            local level = S.progressionLevels[progKey] or 0
-            local maxLevel = S.ProgressionList[progKey] and S.ProgressionList[progKey].MaxLevel or "?"
-            pcall(function() labelRef:SetText("Level: "..tostring(level).." / "..tostring(maxLevel)) end)
+            local level = progressionLevels[progKey] or 0
+            local maxLevel = ProgressionList[progKey] and ProgressionList[progKey].MaxLevel or "?"
+            aas_setLabel(labelRef, "Level: "..tostring(level).." / "..tostring(maxLevel))
         end
     end
 end
 
 function aas_applyUpgrades2Payload(sysKey, payload)
     if type(payload) ~= "table" then return end
-    if not S.upgrades2LiveData[sysKey] then S.upgrades2LiveData[sysKey] = {} end
+    if not upgrades2LiveData[sysKey] then upgrades2LiveData[sysKey] = {} end
     local upgradesList = payload.Upgrades
     if type(upgradesList) == "table" then
         for _, upg in ipairs(upgradesList) do
             if type(upg) == "table" and type(upg.Multiplier) == "string" then
                 local key = upg.Multiplier
-                if not S.upgrades2LiveData[sysKey][key] then S.upgrades2LiveData[sysKey][key] = {} end
-                for k, v in pairs(upg) do S.upgrades2LiveData[sysKey][key][k] = v end
+                if not upgrades2LiveData[sysKey][key] then upgrades2LiveData[sysKey][key] = {} end
+                for k, v in pairs(upg) do upgrades2LiveData[sysKey][key][k] = v end
             end
         end
     end
@@ -2581,30 +2894,36 @@ task.spawn(function()
     end)
 end)
 
+local aas_lastFullSync = 0
 function aas_syncAllPlayerData()
+    -- Central throttle: 24 call sites share one fetch; never refetch within 1.5s.
+    -- Loops already tolerate stale reads; this kills InvokeServer storms when
+    -- many features run at once.
+    if tick() - aas_lastFullSync < 1.5 then return end
+    aas_lastFullSync = tick()
     if not aas_getPlayerDataFunc then return end
     local ok, data = pcall(function() return aas_getPlayerDataFunc:InvokeServer() end)
     if not ok or type(data) ~= "table" then return end
-    S.cachedPlayerData = data
+    cachedPlayerData = data
 
-    if type(data.ActivePotions) == "table" then S.activePotions = data.ActivePotions end
+    if type(data.ActivePotions) == "table" then activePotions = data.ActivePotions end
 
     local activeGachas = data.ActiveGachas
     if type(activeGachas) == "table" then
         for gachaKey, rarity in pairs(activeGachas) do
-            S.activeGachaRarities[gachaKey] = tostring(rarity)
-            local labelRef = S.gachaLabelRefs[gachaKey]
-            if labelRef then pcall(function() labelRef:SetText("Current: "..tostring(rarity)) end) end
+            activeGachaRarities[gachaKey] = tostring(rarity)
+            local labelRef = gachaLabelRefs[gachaKey]
+            if labelRef then aas_setLabel(labelRef, "Current: "..tostring(rarity)) end
         end
     end
 
     local activePassive = data.ActivePassive
     if type(activePassive) == "table" and activePassive.Name and activePassive.Rarity then
-        S.activePassiveData = activePassive
-        if S.passiveLabelRef then pcall(function() S.passiveLabelRef:SetText("Active: "..tostring(activePassive.Name).." | "..tostring(activePassive.Rarity)) end) end
+        activePassiveData = activePassive
+        if passiveLabelRef then aas_setLabel(passiveLabelRef, "Active: "..tostring(activePassive.Name).." | "..tostring(activePassive.Rarity)) end
     else
-        S.activePassiveData = nil
-        if S.passiveLabelRef then pcall(function() S.passiveLabelRef:SetText("Active: None") end) end
+        activePassiveData = nil
+        if passiveLabelRef then aas_setLabel(passiveLabelRef, "Active: None") end
     end
 
     local activeTitans = data.ActiveTitans
@@ -2612,31 +2931,31 @@ function aas_syncAllPlayerData()
         local bestRarity, bestIdx = nil, 0
         for _, titanData in pairs(activeTitans) do
             if type(titanData) == "table" and titanData.Rarity then
-                local idx = aas_getRarityIndex(S.TitanRarityOrder, titanData.Rarity)
+                local idx = aas_getRarityIndex(TitanRarityOrder, titanData.Rarity)
                 if idx > bestIdx then bestIdx = idx bestRarity = titanData.Rarity end
             end
         end
-        S.activeTitanData = bestRarity and { rarity=bestRarity } or nil
-        if S.titanLabelRef then
-            pcall(function() S.titanLabelRef:SetText(S.activeTitanData and ("Active Titan: "..S.activeTitanData.rarity) or "Active Titan: None") end)
+        activeTitanData = bestRarity and { rarity=bestRarity } or nil
+        if titanLabelRef then
+            aas_setLabel(titanLabelRef, activeTitanData and ("Active Titan: "..activeTitanData.rarity) or "Active Titan: None")
         end
     end
 
     local sword1Raw = data.EquippedSword
-    S.sword1Data = type(sword1Raw) == "table" and { SwordKey=sword1Raw.SwordKey or "World0", Rarity=sword1Raw.Rarity or "Common", Level=sword1Raw.Level or 0, Index=sword1Raw.Index or 1 } or nil
+    sword1Data = type(sword1Raw) == "table" and { SwordKey=sword1Raw.SwordKey or "World0", Rarity=sword1Raw.Rarity or "Common", Level=sword1Raw.Level or 0, Index=sword1Raw.Index or 1 } or nil
 
     local sword2Raw = data.EquippedSword2
-    S.sword2Data = type(sword2Raw) == "table" and { SwordKey=sword2Raw.SwordKey or "World0", Rarity=sword2Raw.Rarity or "Common", Level=sword2Raw.Level or 0, Index=sword2Raw.Index or 1 } or nil
+    sword2Data = type(sword2Raw) == "table" and { SwordKey=sword2Raw.SwordKey or "World0", Rarity=sword2Raw.Rarity or "Common", Level=sword2Raw.Level or 0, Index=sword2Raw.Index or 1 } or nil
 
     local swordPassives = data.SwordPassives
     if type(swordPassives) == "table" then
-        if S.sword1Data then
-            local key1 = string.format("World0_%s_%d_%d", S.sword1Data.Rarity, S.sword1Data.Level, S.sword1Data.Index)
-            S.sword1CurrentBreathing = type(swordPassives[key1]) == "table" and swordPassives[key1] or nil
+        if sword1Data then
+            local key1 = string.format("World0_%s_%d_%d", sword1Data.Rarity, sword1Data.Level, sword1Data.Index)
+            sword1CurrentBreathing = type(swordPassives[key1]) == "table" and swordPassives[key1] or nil
         end
-        if S.sword2Data then
-            local key2 = string.format("World0_%s_%d_%d", S.sword2Data.Rarity, S.sword2Data.Level, S.sword2Data.Index)
-            S.sword2CurrentBreathing = type(swordPassives[key2]) == "table" and swordPassives[key2] or nil
+        if sword2Data then
+            local key2 = string.format("World0_%s_%d_%d", sword2Data.Rarity, sword2Data.Level, sword2Data.Index)
+            sword2CurrentBreathing = type(swordPassives[key2]) == "table" and swordPassives[key2] or nil
         end
     end
 
@@ -2644,14 +2963,14 @@ function aas_syncAllPlayerData()
     if type(activeGrimoires) == "table" then
         local world7 = activeGrimoires["World7"]
         if type(world7) == "table" then
-            S.activeGrimoireSlot1 = type(world7.Slot1) == "string" and world7.Slot1 or nil
-            S.activeGrimoireSlot2 = type(world7.Slot2) == "string" and world7.Slot2 or nil
-        else S.activeGrimoireSlot1 = nil S.activeGrimoireSlot2 = nil end
+            activeGrimoireSlot1 = type(world7.Slot1) == "string" and world7.Slot1 or nil
+            activeGrimoireSlot2 = type(world7.Slot2) == "string" and world7.Slot2 or nil
+        else activeGrimoireSlot1 = nil activeGrimoireSlot2 = nil end
     end
 
     local activeProgressions = data.ActiveProgressions
     if type(activeProgressions) == "table" then
-        for progKey, level in pairs(activeProgressions) do S.progressionLevels[progKey] = tonumber(level) or 0 end
+        for progKey, level in pairs(activeProgressions) do progressionLevels[progKey] = tonumber(level) or 0 end
     end
 
     aas_updateSword1Labels() aas_updateSword2Labels() aas_updateGrimoireLabels() aas_updateProgressionLabels()
@@ -2667,31 +2986,31 @@ end)
 
 function aas_gachaLoop(gachaKey)
     local lastSync = 0
-    while S.gachaEnabled[gachaKey] do
-        if S.activeGachaRarities[gachaKey] == AAS_ASTRAL then
-            S.gachaEnabled[gachaKey] = false
+    while gachaEnabled[gachaKey] do
+        if activeGachaRarities[gachaKey] == AAS_ASTRAL then
+            gachaEnabled[gachaKey] = false
             if Toggles["AutoGacha_"..gachaKey] then Toggles["AutoGacha_"..gachaKey]:SetValue(false) end
-            Library:Notify((S.GachaList[gachaKey] and S.GachaList[gachaKey].Name or gachaKey) .. " - Reached Astral!")
+            Window:Notify({ Title = "Euclidean", Content = (GachaList[gachaKey] and GachaList[gachaKey].Name or gachaKey) .. " - Reached Astral!", Duration = 3, Type = "Info" })
             break
         end
         pcall(function() aas_gachaRollRemote:Fire(gachaKey) end) task.wait(0.1)
         if tick() - lastSync >= 5 then
             lastSync = tick() pcall(aas_syncAllPlayerData)
-            if S.activeGachaRarities[gachaKey] == AAS_ASTRAL then
-                S.gachaEnabled[gachaKey] = false
+            if activeGachaRarities[gachaKey] == AAS_ASTRAL then
+                gachaEnabled[gachaKey] = false
                 if Toggles["AutoGacha_"..gachaKey] then Toggles["AutoGacha_"..gachaKey]:SetValue(false) end
-                Library:Notify((S.GachaList[gachaKey] and S.GachaList[gachaKey].Name or gachaKey) .. " - Reached Astral!")
+                Window:Notify({ Title = "Euclidean", Content = (GachaList[gachaKey] and GachaList[gachaKey].Name or gachaKey) .. " - Reached Astral!", Duration = 3, Type = "Info" })
                 break
             end
         end
     end
 end
 
-function aas_swordWorld0Loop() while S.SwordWorld0Enabled do pcall(function() aas_swordRollRemote:Fire("World0") end) task.wait(0.1) end end
-function aas_swordWorld8Loop() while S.SwordWorld8Enabled do pcall(function() aas_swordRollRemote:Fire("World8") end) task.wait(0.1) end end
-function aas_fuseAllLoop() while S.autoFuseAllEnabled do if aas_bridgeDataRemote then pcall(function() aas_bridgeDataRemote:FireServer({ [2] = "Q" }) end) end task.wait(5) end end
-function aas_passiveLoop() while S.passiveAutoEnabled do pcall(function() aas_passiveRollRemote:Fire() end) task.wait(0.1) end end
-function aas_titanLoop() while S.titanAutoEnabled do pcall(function() aas_titanRollRemote:Fire("World4") end) task.wait(0.1) end end
+function aas_swordWorld0Loop() while SwordWorld0Enabled do pcall(function() aas_swordRollRemote:Fire("World0") end) task.wait(0.1) end end
+function aas_swordWorld8Loop() while SwordWorld8Enabled do pcall(function() aas_swordRollRemote:Fire("World8") end) task.wait(0.1) end end
+function aas_fuseAllLoop() while autoFuseAllEnabled do if aas_bridgeDataRemote then pcall(function() aas_bridgeDataRemote:FireServer({ [2] = "Q" }) end) end task.wait(5) end end
+function aas_passiveLoop() while passiveAutoEnabled do pcall(function() aas_passiveRollRemote:Fire() end) task.wait(0.1) end end
+function aas_titanLoop() while titanAutoEnabled do pcall(function() aas_titanRollRemote:Fire("World4") end) task.wait(0.1) end end
 
 -- SWORD PASSIVES
 function aas_getSword1StopRarities()
@@ -2718,53 +3037,53 @@ function aas_swordPassiveRarityReached(currentPassive, stopRarities)
 end
 
 function aas_swordPassive1Loop()
-    while S.swordPassive1Enabled do
+    while swordPassive1Enabled do
         local stopRarities = aas_getSword1StopRarities()
-        if aas_swordPassiveRarityReached(S.sword1CurrentBreathing, stopRarities) then
-            S.swordPassive1Enabled = false
+        if aas_swordPassiveRarityReached(sword1CurrentBreathing, stopRarities) then
+            swordPassive1Enabled = false
             if Toggles["AutoSwordPassive1Enabled"] then Toggles["AutoSwordPassive1Enabled"]:SetValue(false) end
-            Library:Notify("Sword Passive 1 Stopped - Reached: "..(S.sword1CurrentBreathing and S.sword1CurrentBreathing.Name or "Unknown"))
+            Window:Notify({ Title = "Euclidean", Content = "Sword Passive 1 Stopped - Reached: "..(sword1CurrentBreathing and sword1CurrentBreathing.Name or "Unknown"), Duration = 3, Type = "Info" })
             break
         end
-        if not S.sword1Data then task.wait(1) continue end
-        pcall(function() aas_swordPassiveRollRemote:Fire({ SwordKey=S.sword1Data.SwordKey or "World0", Rarity=S.sword1Data.Rarity, Level=S.sword1Data.Level or 0, Index=S.sword1Data.Index or 1, SystemKey="World6" }) end)
+        if not sword1Data then task.wait(1) continue end
+        pcall(function() aas_swordPassiveRollRemote:Fire({ SwordKey=sword1Data.SwordKey or "World0", Rarity=sword1Data.Rarity, Level=sword1Data.Level or 0, Index=sword1Data.Index or 1, SystemKey="World6" }) end)
         task.wait(0.1)
     end
 end
 
 function aas_swordPassive2Loop()
-    while S.swordPassive2Enabled do
+    while swordPassive2Enabled do
         local stopRarities = aas_getSword2StopRarities()
-        if aas_swordPassiveRarityReached(S.sword2CurrentBreathing, stopRarities) then
-            S.swordPassive2Enabled = false
+        if aas_swordPassiveRarityReached(sword2CurrentBreathing, stopRarities) then
+            swordPassive2Enabled = false
             if Toggles["AutoSwordPassive2Enabled"] then Toggles["AutoSwordPassive2Enabled"]:SetValue(false) end
-            Library:Notify("Sword Passive 2 Stopped - Reached: "..(S.sword2CurrentBreathing and S.sword2CurrentBreathing.Name or "Unknown"))
+            Window:Notify({ Title = "Euclidean", Content = "Sword Passive 2 Stopped - Reached: "..(sword2CurrentBreathing and sword2CurrentBreathing.Name or "Unknown"), Duration = 3, Type = "Info" })
             break
         end
-        if not S.sword2Data then task.wait(1) continue end
-        pcall(function() aas_swordPassiveRollRemote:Fire({ SwordKey=S.sword2Data.SwordKey or "World0", Rarity=S.sword2Data.Rarity, Level=S.sword2Data.Level or 0, Index=S.sword2Data.Index or 1, SystemKey="World6" }) end)
+        if not sword2Data then task.wait(1) continue end
+        pcall(function() aas_swordPassiveRollRemote:Fire({ SwordKey=sword2Data.SwordKey or "World0", Rarity=sword2Data.Rarity, Level=sword2Data.Level or 0, Index=sword2Data.Index or 1, SystemKey="World6" }) end)
         task.wait(0.1)
     end
 end
 
 -- GRIMOIRES
 function aas_grimoire1Loop()
-    while S.grimoire1Enabled do
-        if S.activeGrimoireSlot1 == AAS_DIVINE then
-            S.grimoire1Enabled = false
+    while grimoire1Enabled do
+        if activeGrimoireSlot1 == AAS_DIVINE then
+            grimoire1Enabled = false
             if Toggles["AutoGrimoire1Enabled"] then Toggles["AutoGrimoire1Enabled"]:SetValue(false) end
-            Library:Notify("Auto Grimoire Slot 1 Stopped - Reached Divine!") break
+            Window:Notify({ Title = "Euclidean", Content = "Auto Grimoire Slot 1 Stopped - Reached Divine!", Duration = 3, Type = "Info" }) break
         end
         pcall(function() aas_grimoireRollRemote:Fire("World7", "Slot1") end) task.wait(0.1)
     end
 end
 
 function aas_grimoire2Loop()
-    while S.grimoire2Enabled do
-        if S.activeGrimoireSlot2 == AAS_DIVINE then
-            S.grimoire2Enabled = false
+    while grimoire2Enabled do
+        if activeGrimoireSlot2 == AAS_DIVINE then
+            grimoire2Enabled = false
             if Toggles["AutoGrimoire2Enabled"] then Toggles["AutoGrimoire2Enabled"]:SetValue(false) end
-            Library:Notify("Auto Grimoire Slot 2 Stopped - Reached Divine!") break
+            Window:Notify({ Title = "Euclidean", Content = "Auto Grimoire Slot 2 Stopped - Reached Divine!", Duration = 3, Type = "Info" }) break
         end
         pcall(function() aas_grimoireRollRemote:Fire("World7", "Slot2") end) task.wait(0.1)
     end
@@ -2780,8 +3099,8 @@ function aas_getPetPassiveStopRarities()
 end
 
 function aas_getPetPassiveCurrentRarity()
-    if not S.petPassiveCurrentData then return nil end
-    return S.petPassiveCurrentData.Rarity
+    if not petPassiveCurrentData then return nil end
+    return petPassiveCurrentData.Rarity
 end
 
 function aas_petPassiveRarityReached(stopRarities)
@@ -2796,7 +3115,7 @@ function aas_syncPetPassiveData()
     local ok, data = pcall(function() return aas_getPlayerDataFunc:InvokeServer() end)
     if not ok or type(data) ~= "table" then return end
     local petPassives = data.PetPassives
-    local selectedId = S.petPassiveSelectedPetId
+    local selectedId = petPassiveSelectedPetId
     if type(petPassives) == "table" and selectedId then
         local passiveId = petPassives[selectedId]
         if type(passiveId) == "string" and passiveId ~= "" then
@@ -2805,14 +3124,14 @@ function aas_syncPetPassiveData()
                 local cfg = GameLibrary.getConfig("PetPassiveConfig")
                 if cfg and cfg.GetPassiveById then passiveConfig = cfg:GetPassiveById(passiveId) end
             end)
-            if passiveConfig then S.petPassiveCurrentData = { Id=passiveConfig.Id, Name=passiveConfig.Name or passiveId, Rarity=passiveConfig.Rarity or "Unknown" }
-            else S.petPassiveCurrentData = { Id=passiveId, Name=passiveId, Rarity="Unknown" } end
-        else S.petPassiveCurrentData = nil end
+            if passiveConfig then petPassiveCurrentData = { Id=passiveConfig.Id, Name=passiveConfig.Name or passiveId, Rarity=passiveConfig.Rarity or "Unknown" }
+            else petPassiveCurrentData = { Id=passiveId, Name=passiveId, Rarity="Unknown" } end
+        else petPassiveCurrentData = nil end
     end
-    if S.petPassiveLabelRef then
-        if S.petPassiveCurrentData then
-            pcall(function() S.petPassiveLabelRef:SetText("Current: "..tostring(S.petPassiveCurrentData.Name).." ("..tostring(S.petPassiveCurrentData.Rarity)..")") end)
-        else pcall(function() S.petPassiveLabelRef:SetText("Current: None") end) end
+    if petPassiveLabelRef then
+        if petPassiveCurrentData then
+            aas_setLabel(petPassiveLabelRef, "Current: "..tostring(petPassiveCurrentData.Name).." ("..tostring(petPassiveCurrentData.Rarity)..")")
+        else aas_setLabel(petPassiveLabelRef, "Current: None") end
     end
 end
 
@@ -2852,23 +3171,23 @@ function aas_scanEquippedPets()
 end
 
 function aas_petPassiveLoop()
-    while S.petPassiveAutoEnabled do
-        local selectedId = S.petPassiveSelectedPetId
+    while petPassiveAutoEnabled do
+        local selectedId = petPassiveSelectedPetId
         if not selectedId or selectedId == "" then task.wait(1) continue end
         pcall(aas_syncPetPassiveData)
         local stopRarities = aas_getPetPassiveStopRarities()
         if aas_petPassiveRarityReached(stopRarities) then
-            S.petPassiveAutoEnabled = false
+            petPassiveAutoEnabled = false
             if Toggles["AutoPetPassiveEnabled"] then Toggles["AutoPetPassiveEnabled"]:SetValue(false) end
-            Library:Notify("Pet Passive Stopped - Reached: "..tostring(S.petPassiveCurrentData and S.petPassiveCurrentData.Name or "Unknown"))
+            Window:Notify({ Title = "Euclidean", Content = "Pet Passive Stopped - Reached: "..tostring(petPassiveCurrentData and petPassiveCurrentData.Name or "Unknown"), Duration = 3, Type = "Info" })
             break
         end
         pcall(function() aas_petPassiveRollRemote:Fire({ SystemKey="World9", PetUniqueId=selectedId }) end)
         task.wait(1.1)
         if aas_petPassiveRarityReached(aas_getPetPassiveStopRarities()) then
-            S.petPassiveAutoEnabled = false
+            petPassiveAutoEnabled = false
             if Toggles["AutoPetPassiveEnabled"] then Toggles["AutoPetPassiveEnabled"]:SetValue(false) end
-            Library:Notify("Pet Passive Stopped - Reached: "..tostring(S.petPassiveCurrentData and S.petPassiveCurrentData.Name or "Unknown"))
+            Window:Notify({ Title = "Euclidean", Content = "Pet Passive Stopped - Reached: "..tostring(petPassiveCurrentData and petPassiveCurrentData.Name or "Unknown"), Duration = 3, Type = "Info" })
             break
         end
     end
@@ -2879,14 +3198,14 @@ end
 -- ══════════════════════════════════════════
 
 function aas_progressionLoop(progKey)
-    local progData = S.ProgressionList[progKey]
+    local progData = ProgressionList[progKey]
     if not progData then return end
-    while S.progressionEnabled[progKey] do
-        local currentLevel = S.progressionLevels[progKey] or 0
+    while progressionEnabled[progKey] do
+        local currentLevel = progressionLevels[progKey] or 0
         if currentLevel >= (progData.MaxLevel or 45) then
-            S.progressionEnabled[progKey] = false
+            progressionEnabled[progKey] = false
             if Toggles["AutoProgression_"..progKey] then Toggles["AutoProgression_"..progKey]:SetValue(false) end
-            Library:Notify(progData.Name.." Stopped - Reached max level "..tostring(progData.MaxLevel).."!")
+            Window:Notify({ Title = "Euclidean", Content = progData.Name.." Stopped - Reached max level "..tostring(progData.MaxLevel).."!", Duration = 3, Type = "Info" })
             break
         end
         pcall(function() aas_progressionUpgradeRemote:Fire(progKey) end) task.wait(0.1)
@@ -2894,18 +3213,18 @@ function aas_progressionLoop(progKey)
 end
 
 function aas_rangeUpgradeLoop(sysKey)
-    while S.rangeUpgradeEnabled[sysKey] do pcall(function() aas_rangeUpgradeRemote:Fire(sysKey) end) task.wait(1.0) end
+    while rangeUpgradeEnabled[sysKey] do pcall(function() aas_rangeUpgradeRemote:Fire(sysKey) end) task.wait(1.0) end
 end
 
 function aas_upgrades2LoopV2(sysKey)
     pcall(function() aas_upgrades2DataRemote:Fire() end) task.wait(1)
-    while S.upgrades2Enabled2[sysKey] do
-        local selectedStats = S.upgrades2SelectedStats[sysKey] or {}
+    while upgrades2Enabled2[sysKey] do
+        local selectedStats = upgrades2SelectedStats[sysKey] or {}
         local anySelected = false
         for _ in pairs(selectedStats) do anySelected = true break end
         if not anySelected then task.wait(1) continue end
 
-        local liveData = S.upgrades2LiveData[sysKey] or {}
+        local liveData = upgrades2LiveData[sysKey] or {}
         local anyUpgraded = false
         local cfg = GameLibrary.getConfig("Upgrades2Config")
         local sysData = cfg and cfg:GetSystem(sysKey)
@@ -2918,8 +3237,8 @@ function aas_upgrades2LoopV2(sysKey)
             local currentLevel = (live and live.Level) or 0
             local maxLevel = upgradeInfo.MaxLevel or math.huge
             if currentLevel >= maxLevel then
-                S.upgrades2SelectedStats[sysKey][statKey] = nil
-                Library:Notify("Professions: "..(upgradeInfo.DisplayName or statKey).." - Reached MAX! Deselected.")
+                upgrades2SelectedStats[sysKey][statKey] = nil
+                Window:Notify({ Title = "Euclidean", Content = "Professions: "..(upgradeInfo.DisplayName or statKey).." - Reached MAX! Deselected.", Duration = 3, Type = "Info" })
                 continue
             end
             if live and live.CanUpgrade == true then
@@ -2935,16 +3254,16 @@ end
 
 function aas_autoEvolutionLoop()
     pcall(aas_syncAllPlayerData)
-    while S.autoEvolutionEnabled do
+    while autoEvolutionEnabled do
         local allMaxed = true
-        for _, evKey in ipairs(S.sortedEvolutionKeys) do
-            if not S.autoEvolutionEnabled then break end
+        for _, evKey in ipairs(sortedEvolutionKeys) do
+            if not autoEvolutionEnabled then break end
             local currentLevel = 0
             pcall(function()
-                local evolutions = S.cachedPlayerData and S.cachedPlayerData.Evolutions
+                local evolutions = cachedPlayerData and cachedPlayerData.Evolutions
                 if type(evolutions) == "table" then currentLevel = tonumber(evolutions[evKey]) or 0 end
             end)
-            local evData = S.EvolutionList[evKey]
+            local evData = EvolutionList[evKey]
             if not evData then continue end
             if currentLevel < evData.MaxLevel then
                 allMaxed = false
@@ -2953,9 +3272,9 @@ function aas_autoEvolutionLoop()
             end
         end
         if allMaxed then
-            S.autoEvolutionEnabled = false
+            autoEvolutionEnabled = false
             if Toggles["AutoEvolutionEnabled"] then Toggles["AutoEvolutionEnabled"]:SetValue(false) end
-            Library:Notify("Auto Evolution - All evolutions are at MAX level!")
+            Window:Notify({ Title = "Euclidean", Content = "Auto Evolution - All evolutions are at MAX level!", Duration = 3, Type = "Info" })
             break
         end
         task.wait(1)
@@ -2967,20 +3286,20 @@ end
 -- ══════════════════════════════════════════
 
 function aas_skillTreeLoop(treeName)
-    local treeData = S.SkillTreeList[treeName]
+    local treeData = SkillTreeList[treeName]
     if not treeData then return end
-    while S.skillTreeEnabled[treeName] do
+    while skillTreeEnabled[treeName] do
         pcall(aas_syncAllPlayerData)
         local purchased = {}
         pcall(function()
-            if S.cachedPlayerData and S.cachedPlayerData.SkillTree then
-                local treeProgress = S.cachedPlayerData.SkillTree[treeName]
+            if cachedPlayerData and cachedPlayerData.SkillTree then
+                local treeProgress = cachedPlayerData.SkillTree[treeName]
                 if type(treeProgress) == "table" then purchased = treeProgress end
             end
         end)
         local allDone = true
         for _, upgradeName in ipairs(treeData.UpgradeOrder) do
-            if not S.skillTreeEnabled[treeName] then break end
+            if not skillTreeEnabled[treeName] then break end
             if not purchased[upgradeName] then
                 allDone = false
                 pcall(function() aas_skillTreeUpgradeRemote:InvokeServer(treeName, upgradeName) end)
@@ -2988,9 +3307,9 @@ function aas_skillTreeLoop(treeName)
             end
         end
         if allDone then
-            S.skillTreeEnabled[treeName] = false
+            skillTreeEnabled[treeName] = false
             if Toggles["AutoSkillTree_"..treeName] then Toggles["AutoSkillTree_"..treeName]:SetValue(false) end
-            Library:Notify("Skill Tree: "..treeName.." - All upgrades purchased!")
+            Window:Notify({ Title = "Euclidean", Content = "Skill Tree: "..treeName.." - All upgrades purchased!", Duration = 3, Type = "Info" })
             break
         end
         task.wait(1)
@@ -2998,14 +3317,14 @@ function aas_skillTreeLoop(treeName)
 end
 
 function aas_constellationLoop(constId)
-    local constData = S.ConstellationList[constId]
+    local constData = ConstellationList[constId]
     if not constData then return end
-    while S.constellationEnabled[constId] do
+    while constellationEnabled[constId] do
         pcall(aas_syncAllPlayerData)
         local purchased = {}
         pcall(function()
-            if S.cachedPlayerData and S.cachedPlayerData.SinsRaid then
-                local constellations = S.cachedPlayerData.SinsRaid.Constellations
+            if cachedPlayerData and cachedPlayerData.SinsRaid then
+                local constellations = cachedPlayerData.SinsRaid.Constellations
                 if type(constellations) == "table" then
                     local constProgress = constellations[constId]
                     if type(constProgress) == "table" then purchased = constProgress end
@@ -3014,7 +3333,7 @@ function aas_constellationLoop(constId)
         end)
         local allDone = true
         for _, nodeName in ipairs(constData.NodeOrder) do
-            if not S.constellationEnabled[constId] then break end
+            if not constellationEnabled[constId] then break end
             if purchased[nodeName] ~= true then
                 allDone = false
                 pcall(function() aas_constellationUpgradeRemote:InvokeServer(constId, nodeName) end)
@@ -3022,9 +3341,9 @@ function aas_constellationLoop(constId)
             end
         end
         if allDone then
-            S.constellationEnabled[constId] = false
+            constellationEnabled[constId] = false
             if Toggles["AutoConstellation_"..constId] then Toggles["AutoConstellation_"..constId]:SetValue(false) end
-            Library:Notify("Constellation: "..constData.Name.." - All nodes purchased!")
+            Window:Notify({ Title = "Euclidean", Content = "Constellation: "..constData.Name.." - All nodes purchased!", Duration = 3, Type = "Info" })
             break
         end
         task.wait(1)
@@ -3039,11 +3358,11 @@ function aas_getPetAutoActionsForEgg(eggKey)
     local out = {}
     if not eggKey or eggKey == "" then return out end
 
-    local data = S.cachedPlayerData
+    local data = cachedPlayerData
     if type(data) ~= "table" then
         local ok, fetched = pcall(function() return aas_getPlayerDataFunc:InvokeServer() end)
         if ok and type(fetched) == "table" then
-            S.cachedPlayerData = fetched
+            cachedPlayerData = fetched
             data = fetched
         end
     end
@@ -3065,8 +3384,8 @@ end
 
 function aas_starLoop()
     local lastSync = 0
-    while S.starEnabled do
-        local eggKey = S.starEggKey
+    while starEnabled do
+        local eggKey = starEggKey
         if not eggKey then task.wait(0.5) continue end
         if tick() - lastSync >= 5 then
             lastSync = tick()
@@ -3079,17 +3398,17 @@ function aas_starLoop()
 end
 
 function aas_craftLoop(craftKey)
-    local craftData = S.CraftList[craftKey]
+    local craftData = CraftList[craftKey]
     if not craftData then return end
-    while S.craftEnabled[craftKey] do
-        local isShiny = S.craftShiny[craftKey] == true
+    while craftEnabled[craftKey] do
+        local isShiny = craftShiny[craftKey] == true
         pcall(function() aas_craftPetRemote:Fire(craftKey, isShiny) end) task.wait(1.1)
     end
 end
 
 function aas_getRelicState(relicName)
-    if not S.cachedPlayerData then return nil end
-    local relics = S.cachedPlayerData.Relics
+    if not cachedPlayerData then return nil end
+    local relics = cachedPlayerData.Relics
     if type(relics) ~= "table" then return nil end
     local state = relics[relicName]
     if type(state) ~= "table" then return nil end
@@ -3106,11 +3425,11 @@ local AAS_GQ_RELIC_MAP = {
 }
 
 function aas_autoRelicUpgradeLoop()
-    while S.autoRelicUpgradeEnabled do
+    while autoRelicUpgradeEnabled do
         pcall(aas_syncAllPlayerData)
         local allMaxed = true
         for relicName, _ in pairs(AAS_GQ_RELIC_MAP) do
-            if not S.autoRelicUpgradeEnabled then break end
+            if not autoRelicUpgradeEnabled then break end
             local relicState = aas_getRelicState(relicName)
             if relicState then
                 local level = tonumber(relicState.Level) or 0
@@ -3126,9 +3445,9 @@ function aas_autoRelicUpgradeLoop()
             end
         end
         if allMaxed then
-            S.autoRelicUpgradeEnabled = false
+            autoRelicUpgradeEnabled = false
             if Toggles["AutoRelicUpgradeEnabled"] then Toggles["AutoRelicUpgradeEnabled"]:SetValue(false) end
-            Library:Notify("Auto Relic Upgrade - All relics maxed!")
+            Window:Notify({ Title = "Euclidean", Content = "Auto Relic Upgrade - All relics maxed!", Duration = 3, Type = "Info" })
             break
         end
         task.wait(0.5)
@@ -3136,10 +3455,10 @@ function aas_autoRelicUpgradeLoop()
 end
 
 function aas_autoRelicAscendLoop()
-    while S.autoRelicAscendEnabled do
+    while autoRelicAscendEnabled do
         pcall(aas_syncAllPlayerData)
         for relicName, _ in pairs(AAS_GQ_RELIC_MAP) do
-            if not S.autoRelicAscendEnabled then break end
+            if not autoRelicAscendEnabled then break end
             local relicState = aas_getRelicState(relicName)
             if relicState then
                 local level = tonumber(relicState.Level) or 0
@@ -3287,18 +3606,18 @@ function aas_gqIsFarmable(index)
 end
 
 function aas_globalQuestLoop()
-    while S.globalQuestEnabled do
+    while globalQuestEnabled do
         local highPrio, highType = aas_isHighPrioritySpawnOrRunPresent()
         if highPrio then
-            if not S.globalQuestSuppressedByPriority then
-                S.globalQuestSuppressedByPriority = true
-                Library:Notify("GQ Paused - "..tostring(highType).." has higher priority.")
+            if not globalQuestSuppressedByPriority then
+                globalQuestSuppressedByPriority = true
+                Window:Notify({ Title = "Euclidean", Content = "GQ Paused - "..tostring(highType).." has higher priority.", Duration = 3, Type = "Info" })
             end
             task.wait(1) continue
         else
-            if S.globalQuestSuppressedByPriority then
-                S.globalQuestSuppressedByPriority = false
-                Library:Notify("GQ Resumed")
+            if globalQuestSuppressedByPriority then
+                globalQuestSuppressedByPriority = false
+                Window:Notify({ Title = "Euclidean", Content = "GQ Resumed", Duration = 3, Type = "Info" })
             end
         end
 
@@ -3329,10 +3648,10 @@ function aas_globalQuestLoop()
         if hasRankQuests then pcall(function() aas_toggleAutoRank(true) end) end
 
         if hasMobQuests then
-            aas_equipLoadout(S.LoadoutAssignments.Farm or "Power")
+            aas_equipLoadout(LoadoutAssignments.Farm or "Power")
             aas_enterPotionContext("Farm")
             local farmDone = false
-            while S.globalQuestEnabled and not farmDone and not S.globalQuestSuppressedByPriority do
+            while globalQuestEnabled and not farmDone and not globalQuestSuppressedByPriority do
                 local allMobsDone = true
                 for _, idx in ipairs(selectedIndices) do
                     local def = aas_gqGetDef(idx)
@@ -3352,10 +3671,10 @@ function aas_globalQuestLoop()
                     end
                     if mobInfo then
                         allMobsDone = false
-                        if S.currentWorldTracked ~= mobInfo.WorldId then aas_teleportToWorld(mobInfo.WorldId) S.currentWorldTracked = mobInfo.WorldId end
+                        if currentWorldTracked ~= mobInfo.WorldId then aas_teleportToWorld(mobInfo.WorldId) currentWorldTracked = mobInfo.WorldId end
                         local mobs = aas_findMobsInWorld(mobInfo.WorldId, { mobInfo.EnemyName })
                         for _, mob in ipairs(mobs) do
-                            if not S.globalQuestEnabled or S.globalQuestSuppressedByPriority then break end
+                            if not globalQuestEnabled or globalQuestSuppressedByPriority then break end
                             if not mob.Parent or mob:GetAttribute("EnemyDead") == true then continue end
                             aas_teleportToMob(mob) aas_waitForDead(mob, 25) task.wait(0.05)
                         end
@@ -3366,10 +3685,10 @@ function aas_globalQuestLoop()
             end
         end
 
-        if not S.globalQuestEnabled then break end
+        if not globalQuestEnabled then break end
 
         if hasGachaQuests then
-            while S.globalQuestEnabled and not S.globalQuestSuppressedByPriority do
+            while globalQuestEnabled and not globalQuestSuppressedByPriority do
                 local anyRemaining = false
                 for _, idx in ipairs(selectedIndices) do
                     local def = aas_gqGetDef(idx)
@@ -3382,7 +3701,7 @@ function aas_globalQuestLoop()
             end
         end
 
-        if not S.globalQuestEnabled then break end
+        if not globalQuestEnabled then break end
 
         for _, idx in ipairs(selectedIndices) do
             pcall(function() aas_globalQuestClaimRemote:Fire(idx) end) task.wait(0.5)
@@ -3390,7 +3709,7 @@ function aas_globalQuestLoop()
 
         task.wait(2)
     end
-    S.globalQuestCurrentTarget = nil S.globalQuestCurrentAction = nil S.globalQuestSuppressedByPriority = false
+    globalQuestCurrentTarget = nil globalQuestCurrentAction = nil globalQuestSuppressedByPriority = false
 end
 
 -- ══════════════════════════════════════════
@@ -3478,8 +3797,8 @@ function aas_promoBuildRankSummary(rank)
 end
 
 function aas_buildFallbackPromotionState()
-    if not S.cachedPlayerData then pcall(aas_syncAllPlayerData) end
-    local data = S.cachedPlayerData or {}
+    if not cachedPlayerData then pcall(aas_syncAllPlayerData) end
+    local data = cachedPlayerData or {}
     local currentRank = tonumber(data.PromotionRank) or 0
     local missions = aas_PromotionConfig:GetMissions(currentRank) or {}
     local rawProgress = data.PromotionProgress or {}
@@ -3494,11 +3813,11 @@ end
 
 function aas_promoGetMergedState()
     local fallback = aas_buildFallbackPromotionState()
-    local live = S.promotionLiveState
-    local rank = tonumber((live and live.PromotionRank) or (S.cachedPlayerData and S.cachedPlayerData.PromotionRank) or fallback.PromotionRank or 0) or 0
+    local live = promotionLiveState
+    local rank = tonumber((live and live.PromotionRank) or (cachedPlayerData and cachedPlayerData.PromotionRank) or fallback.PromotionRank or 0) or 0
     local cfgMissions = aas_PromotionConfig:GetMissions(rank) or {}
     local liveMissions = (live and type(live.Missions) == "table" and live.Missions) or {}
-    local rawProgress = (S.cachedPlayerData and S.cachedPlayerData.PromotionProgress) or {}
+    local rawProgress = (cachedPlayerData and cachedPlayerData.PromotionProgress) or {}
     local merged = { PromotionRank=rank, NextRank=(live and live.NextRank) or aas_PromotionConfig:GetNextRank(rank), CanPromote=(live and live.CanPromote == true) or false, Missions={} }
     for i, cfgMission in ipairs(cfgMissions) do
         local liveMission = liveMissions[i]
@@ -3519,14 +3838,14 @@ end
 
 function aas_requestPromotionState(timeout)
     timeout = timeout or 2
-    local oldVersion = S.promotionStateVersion or 0
+    local oldVersion = promotionStateVersion or 0
     pcall(function() aas_promotionStateRequestRemote:Fire() end)
     local deadline = tick() + timeout
     while tick() < deadline do
-        if (S.promotionStateVersion or 0) > oldVersion and type(S.promotionLiveState) == "table" then return true, S.promotionLiveState end
+        if (promotionStateVersion or 0) > oldVersion and type(promotionLiveState) == "table" then return true, promotionLiveState end
         task.wait(0.05)
     end
-    return type(S.promotionLiveState) == "table" and true or false, S.promotionLiveState or aas_buildFallbackPromotionState()
+    return type(promotionLiveState) == "table" and true or false, promotionLiveState or aas_buildFallbackPromotionState()
 end
 
 function aas_updatePromotionUi()
@@ -3536,24 +3855,24 @@ function aas_updatePromotionUi()
     local missions = state.Missions or {}
     local completeCount = 0
     for _, m in ipairs(missions) do if aas_promoMissionComplete(m) then completeCount += 1 end end
-    if S.promotionCurrentRankLabelRef then pcall(function() S.promotionCurrentRankLabelRef:SetText("Current Rank: "..tostring(currentRank)) end) end
-    if S.promotionNextRankLabelRef then pcall(function() S.promotionNextRankLabelRef:SetText("Next Rank: "..tostring(state.NextRank or "-")) end) end
-    if S.promotionCanPromoteLabelRef then pcall(function() S.promotionCanPromoteLabelRef:SetText("Can Promote: "..tostring(state.CanPromote == true)) end) end
-    if S.promotionProgressLabelRef then pcall(function() S.promotionProgressLabelRef:SetText("Mission Progress: "..tostring(completeCount).."/"..tostring(#missions)) end) end
+    if promotionCurrentRankLabelRef then aas_setLabel(promotionCurrentRankLabelRef, "Current Rank: "..tostring(currentRank)) end
+    if promotionNextRankLabelRef then aas_setLabel(promotionNextRankLabelRef, "Next Rank: "..tostring(state.NextRank or "-")) end
+    if promotionCanPromoteLabelRef then aas_setLabel(promotionCanPromoteLabelRef, "Can Promote: "..tostring(state.CanPromote == true)) end
+    if promotionProgressLabelRef then aas_setLabel(promotionProgressLabelRef, "Mission Progress: "..tostring(completeCount).."/"..tostring(#missions)) end
     for i = 1, 10 do
-        local labelRef = S.promotionMissionLabelRefs[i]
+        local labelRef = promotionMissionLabelRefs[i]
         if labelRef then
             local missionState = missions[i]
             if missionState then
                 local icon = aas_promoMissionComplete(missionState) and "✅ " or "⏳ "
-                pcall(function() labelRef:SetText(icon..aas_promoBuildMissionText(missionState, true)) end)
-            else pcall(function() labelRef:SetText(" ") end) end
+                aas_setLabel(labelRef, icon..aas_promoBuildMissionText(missionState, true))
+            else aas_setLabel(labelRef, " ") end
         end
     end
-    for rank, labelRef in pairs(S.promotionRankRefLabelRefs) do
+    for rank, labelRef in pairs(promotionRankRefLabelRefs) do
         if labelRef then
             local prefix = rank < currentRank and "✅ " or (rank == currentRank and "➡️ " or "• ")
-            pcall(function() labelRef:SetText(prefix..aas_promoBuildRankSummary(rank)) end)
+            aas_setLabel(labelRef, prefix..aas_promoBuildRankSummary(rank))
         end
     end
 end
@@ -3612,7 +3931,7 @@ function aas_promoChooseForegroundAction(incompleteMissions)
             if isAny then
                 local bestWorldId = 1
                 pcall(function()
-                    local data = S.cachedPlayerData or {}
+                    local data = cachedPlayerData or {}
                     bestWorldId = tonumber(data.CurrentWorld or data.ActiveWorld or 1) or 1
                 end)
                 return { Kind="AnyMob", WorldId=bestWorldId }
@@ -3626,20 +3945,20 @@ function aas_promoDoGamemodeStep(gamemodeName, fullRun)
     local gmInfo = AAS_GQ_GAMEMODE_MAP[gamemodeName]
     if not gmInfo then task.wait(1) return end
     if gmInfo.Type == "Raid" then
-        aas_equipLoadout(S.RaidLoadouts[gmInfo.Key] or "Power")
+        aas_equipLoadout(RaidLoadouts[gmInfo.Key] or "Power")
         if fullRun then
             aas_joinOrCreateRaid(gmInfo.Key)
             if not aas_waitForRaidArena(gmInfo.Key, 10) then return end
             task.wait(5)
             local deadline = tick() + 900
-            while S.promotionEnabled and tick() < deadline do
+            while promotionEnabled and tick() < deadline do
                 if not aas_raidArenaExists(gmInfo.Key) then break end
-                if S.raidOptimizedFarm then task.wait(0.5)
+                if raidOptimizedFarm then task.wait(0.5)
                 else
                     local mobs = aas_findMobsInFolder(aas_getRaidEnemiesFolder(gmInfo.Key), nil)
                     if #mobs == 0 then task.wait(0.2) continue end
                     for _, mob in ipairs(mobs) do
-                        if not S.promotionEnabled or not aas_raidArenaExists(gmInfo.Key) then break end
+                        if not promotionEnabled or not aas_raidArenaExists(gmInfo.Key) then break end
                         if not mob.Parent or mob:GetAttribute("EnemyDead") == true then continue end
                         aas_teleportToMob(mob) aas_waitForDead(mob, 15) task.wait(0.05)
                     end
@@ -3653,20 +3972,20 @@ function aas_promoDoGamemodeStep(gamemodeName, fullRun)
             task.wait(2.5)
         end
     elseif gmInfo.Type == "Defense" then
-        aas_equipLoadout(S.DefenseLoadouts[gmInfo.Key] or "Power")
-        local defData = S.DefenseList[gmInfo.Key]
+        aas_equipLoadout(DefenseLoadouts[gmInfo.Key] or "Power")
+        local defData = DefenseList[gmInfo.Key]
         if defData and defData.WorldId then pcall(function() aas_requestChangeWorldRemote:Fire(defData.WorldId) end) task.wait(3) end
         if fullRun then
             aas_joinOrCreateDefense(gmInfo.Key)
             if not aas_waitForDefenseArena(gmInfo.Key, 10) then return end
             task.wait(5)
             local deadline = tick() + 900
-            while S.promotionEnabled and tick() < deadline do
+            while promotionEnabled and tick() < deadline do
                 if not aas_defenseArenaExists(gmInfo.Key) then break end
                 local mobs = aas_findMobsInFolder(aas_getDefenseEnemiesFolder(gmInfo.Key), nil)
                 if #mobs == 0 then task.wait(0.2) continue end
                 for _, mob in ipairs(mobs) do
-                    if not S.promotionEnabled or not aas_defenseArenaExists(gmInfo.Key) then break end
+                    if not promotionEnabled or not aas_defenseArenaExists(gmInfo.Key) then break end
                     if not mob.Parent or mob:GetAttribute("EnemyDead") == true then continue end
                     aas_teleportToMob(mob) aas_waitForDead(mob, 15) task.wait(0.05)
                 end
@@ -3682,15 +4001,15 @@ function aas_promoDoGamemodeStep(gamemodeName, fullRun)
 end
 
 function aas_promoBackgroundGachaLoop()
-    while S.promotionEnabled do
+    while promotionEnabled do
         pcall(aas_syncAllPlayerData) pcall(function() aas_promotionStateRequestRemote:Fire() end)
-        local liveState = S.promotionLiveState or {}
-        local rank = tonumber(liveState.PromotionRank) or tonumber(S.cachedPlayerData and S.cachedPlayerData.PromotionRank) or 0
+        local liveState = promotionLiveState or {}
+        local rank = tonumber(liveState.PromotionRank) or tonumber(cachedPlayerData and cachedPlayerData.PromotionRank) or 0
         local cfgMissions = aas_PromotionConfig:GetMissions(rank) or {}
         local liveMissions = liveState.Missions or {}
         local didSomething = false
         for i, cfgMission in ipairs(cfgMissions) do
-            if not S.promotionEnabled then break end
+            if not promotionEnabled then break end
             if aas_PromotionConfig:GetQuestType(cfgMission) ~= "GachaRoll" then continue end
             local liveMission = liveMissions[i]
             if not (liveMission and aas_promoMissionComplete(liveMission)) then
@@ -3703,15 +4022,15 @@ function aas_promoBackgroundGachaLoop()
 end
 
 function aas_promoBackgroundEggLoop()
-    while S.promotionEnabled do
+    while promotionEnabled do
         pcall(aas_syncAllPlayerData) pcall(function() aas_promotionStateRequestRemote:Fire() end)
-        local liveState = S.promotionLiveState or {}
-        local rank = tonumber(liveState.PromotionRank) or tonumber(S.cachedPlayerData and S.cachedPlayerData.PromotionRank) or 0
+        local liveState = promotionLiveState or {}
+        local rank = tonumber(liveState.PromotionRank) or tonumber(cachedPlayerData and cachedPlayerData.PromotionRank) or 0
         local cfgMissions = aas_PromotionConfig:GetMissions(rank) or {}
         local liveMissions = liveState.Missions or {}
         local didSomething = false
         for i, cfgMission in ipairs(cfgMissions) do
-            if not S.promotionEnabled then break end
+            if not promotionEnabled then break end
             if aas_PromotionConfig:GetQuestType(cfgMission) ~= "PetSummon" then continue end
             local liveMission = liveMissions[i]
             if not (liveMission and aas_promoMissionComplete(liveMission)) then
@@ -3724,12 +4043,12 @@ function aas_promoBackgroundEggLoop()
 end
 
 function aas_promoBackgroundRelicLoop()
-    while S.promotionEnabled do
+    while promotionEnabled do
         pcall(aas_syncAllPlayerData) pcall(function() aas_promotionStateRequestRemote:Fire() end)
         local state = aas_promoGetMergedState()
         local didSomething = false
         for _, missionState in ipairs(state.Missions or {}) do
-            if not S.promotionEnabled then break end
+            if not promotionEnabled then break end
             if aas_promoMissionComplete(missionState) then continue end
             local src = aas_promoMissionSource(missionState)
             local t = aas_promoMissionType(missionState)
@@ -3752,32 +4071,32 @@ function aas_promoBackgroundRelicLoop()
 end
 
 function aas_promoStartBackgroundThreads()
-    if not S.promotionBgGachaThread then S.promotionBgGachaThread = task.spawn(aas_promoBackgroundGachaLoop) end
-    if not S.promotionBgEggThread then S.promotionBgEggThread = task.spawn(aas_promoBackgroundEggLoop) end
-    if not S.promotionBgRelicThread then S.promotionBgRelicThread = task.spawn(aas_promoBackgroundRelicLoop) end
+    if not promotionBgGachaThread then promotionBgGachaThread = task.spawn(aas_promoBackgroundGachaLoop) end
+    if not promotionBgEggThread then promotionBgEggThread = task.spawn(aas_promoBackgroundEggLoop) end
+    if not promotionBgRelicThread then promotionBgRelicThread = task.spawn(aas_promoBackgroundRelicLoop) end
 end
 
 function aas_promoStopBackgroundThreads()
-    if S.promotionBgGachaThread then task.cancel(S.promotionBgGachaThread) S.promotionBgGachaThread = nil end
-    if S.promotionBgEggThread then task.cancel(S.promotionBgEggThread) S.promotionBgEggThread = nil end
-    if S.promotionBgRelicThread then task.cancel(S.promotionBgRelicThread) S.promotionBgRelicThread = nil end
+    if promotionBgGachaThread then task.cancel(promotionBgGachaThread) promotionBgGachaThread = nil end
+    if promotionBgEggThread then task.cancel(promotionBgEggThread) promotionBgEggThread = nil end
+    if promotionBgRelicThread then task.cancel(promotionBgRelicThread) promotionBgRelicThread = nil end
 end
 
 function aas_autoPromotionLoop()
     pcall(aas_syncAllPlayerData) aas_requestPromotionState(2) aas_promoStartBackgroundThreads()
-    while S.promotionEnabled do
+    while promotionEnabled do
         pcall(aas_syncAllPlayerData) aas_requestPromotionState(1.5)
         local highPrio, highType = aas_isHighPrioritySpawnOrRunPresent()
         if highPrio then
-            if not S.promotionSuppressedByPriority then
-                S.promotionSuppressedByPriority = true
-                Library:Notify("Promotion Paused - "..tostring(highType).." has higher priority.")
+            if not promotionSuppressedByPriority then
+                promotionSuppressedByPriority = true
+                Window:Notify({ Title = "Euclidean", Content = "Promotion Paused - "..tostring(highType).." has higher priority.", Duration = 3, Type = "Info" })
             end
             task.wait(1) continue
         else
-            if S.promotionSuppressedByPriority then
-                S.promotionSuppressedByPriority = false
-                Library:Notify("Promotion Resumed")
+            if promotionSuppressedByPriority then
+                promotionSuppressedByPriority = false
+                Window:Notify({ Title = "Euclidean", Content = "Promotion Resumed", Duration = 3, Type = "Info" })
             end
         end
 
@@ -3787,17 +4106,17 @@ function aas_autoPromotionLoop()
 
         if state.CanPromote == true then
             local oldRank = tonumber(state.PromotionRank) or 0
-            Library:Notify("Promotion - Promoting from rank "..tostring(oldRank).."...")
+            Window:Notify({ Title = "Euclidean", Content = "Promotion - Promoting from rank "..tostring(oldRank).."...", Duration = 3, Type = "Info" })
             pcall(function() aas_promotionPromoteRemote:Fire() end)
             local promoted = false
             local deadline = tick() + 10
-            while S.promotionEnabled and tick() < deadline do
+            while promotionEnabled and tick() < deadline do
                 task.wait(0.4) pcall(aas_syncAllPlayerData) aas_requestPromotionState(1.2)
-                local newRank = tonumber((S.promotionLiveState and S.promotionLiveState.PromotionRank) or (S.cachedPlayerData and S.cachedPlayerData.PromotionRank) or oldRank) or oldRank
+                local newRank = tonumber((promotionLiveState and promotionLiveState.PromotionRank) or (cachedPlayerData and cachedPlayerData.PromotionRank) or oldRank) or oldRank
                 if newRank > oldRank then promoted = true break end
             end
             aas_updatePromotionUi()
-            if promoted then Library:Notify("Promotion - Now farming Promotion "..tostring(S.promotionLiveState and S.promotionLiveState.PromotionRank or "?")) end
+            if promoted then Window:Notify({ Title = "Euclidean", Content = "Promotion - Now farming Promotion "..tostring(promotionLiveState and promotionLiveState.PromotionRank or "?"), Duration = 3, Type = "Info" }) end
             task.wait(0.5) continue
         end
 
@@ -3808,7 +4127,7 @@ function aas_autoPromotionLoop()
         elseif action.Kind == "GamemodeFull" then aas_promoDoGamemodeStep(action.Gamemode, true)
         elseif action.Kind == "GamemodeJoin" then aas_promoDoGamemodeStep(action.Gamemode, false)
         elseif action.Kind == "SpecificMob" then
-            aas_equipLoadout(S.LoadoutAssignments.Farm or "Power")
+            aas_equipLoadout(LoadoutAssignments.Farm or "Power")
             aas_enterPotionContext("Farm")
 
             if action.Target.WorldId == 7 and action.Target.EnemyName == "Lucies" then
@@ -3817,14 +4136,14 @@ function aas_autoPromotionLoop()
                 if not (lf and lf:FindFirstChild("Lucies")) then aas_preloadWorld7Boss() end
             end
 
-            if S.currentWorldTracked ~= action.Target.WorldId then
+            if currentWorldTracked ~= action.Target.WorldId then
                 aas_teleportToWorld(action.Target.WorldId)
-                S.currentWorldTracked = action.Target.WorldId
+                currentWorldTracked = action.Target.WorldId
             end
 
             local mobs = aas_findMobsInWorld(action.Target.WorldId, { action.Target.EnemyName })
             local count = 0
-            if S.clusterFarmEnabled then
+            if clusterFarmEnabled then
                 local centerPos, cluster = aas_getClusterCenter(mobs, 40, 1)
                 if centerPos then
                     aas_teleportToClusterCenter(centerPos)
@@ -3832,7 +4151,7 @@ function aas_autoPromotionLoop()
                 end
             else
                 for _, mob in ipairs(mobs) do
-                    if not S.promotionEnabled then break end
+                    if not promotionEnabled then break end
                     if not mob.Parent or mob:GetAttribute("EnemyDead") == true then continue end
                     aas_teleportToMob(mob) aas_waitForDead(mob, 25) task.wait(0.05)
                     count += 1
@@ -3840,18 +4159,18 @@ function aas_autoPromotionLoop()
                 end
             end
         elseif action.Kind == "AnyMob" then
-            aas_equipLoadout(S.LoadoutAssignments.Farm or "Power")
+            aas_equipLoadout(LoadoutAssignments.Farm or "Power")
             aas_enterPotionContext("Farm")
 
             local bestWorldId = action.WorldId or 1
-            if S.currentWorldTracked ~= bestWorldId then
+            if currentWorldTracked ~= bestWorldId then
                 aas_teleportToWorld(bestWorldId)
-                S.currentWorldTracked = bestWorldId
+                currentWorldTracked = bestWorldId
             end
 
             local mobs = aas_findMobsInWorld(bestWorldId, nil)
             local count = 0
-            if S.clusterFarmEnabled then
+            if clusterFarmEnabled then
                 local centerPos, cluster = aas_getClusterCenter(mobs, 40, 1)
                 if centerPos then
                     aas_teleportToClusterCenter(centerPos)
@@ -3859,7 +4178,7 @@ function aas_autoPromotionLoop()
                 end
             else
                 for _, mob in ipairs(mobs) do
-                    if not S.promotionEnabled then break end
+                    if not promotionEnabled then break end
                     if not mob.Parent or mob:GetAttribute("EnemyDead") == true then continue end
                     aas_teleportToMob(mob) aas_waitForDead(mob, 25) task.wait(0.05)
                     count += 1
@@ -3871,7 +4190,7 @@ function aas_autoPromotionLoop()
         pcall(aas_syncAllPlayerData) aas_requestPromotionState(1.2) task.wait(0.1)
     end
     aas_promoStopBackgroundThreads()
-    S.currentWorldTracked = nil S.promotionSuppressedByPriority = false
+    currentWorldTracked = nil promotionSuppressedByPriority = false
 end
 
 -- ══════════════════════════════════════════
@@ -3959,80 +4278,80 @@ function aas_claimObject(obj)
 end
 
 function aas_crowBallClaimProcessor()
-    while S.autoCrowEnabled or S.autoBallEnabled or S.autoCommandmentEnabled do
-        local hadPendingBefore = (#S.pendingCrows > 0) or (#S.pendingBalls > 0)
+    while autoCrowEnabled or autoBallEnabled or autoCommandmentEnabled do
+        local hadPendingBefore = (#pendingCrows > 0) or (#pendingBalls > 0)
         local newCrowCount, newBallCount = 0, 0
 
-        if S.autoCrowEnabled then
+        if autoCrowEnabled then
             local crows = aas_getAllCrows()
             for _, crow in ipairs(crows) do
                 local already = false
-                for _, pc in ipairs(S.pendingCrows) do if pc == crow then already = true break end end
-                if not already then table.insert(S.pendingCrows, crow) newCrowCount = newCrowCount + 1 end
+                for _, pc in ipairs(pendingCrows) do if pc == crow then already = true break end end
+                if not already then table.insert(pendingCrows, crow) newCrowCount = newCrowCount + 1 end
             end
         end
 
-        if S.autoBallEnabled then
+        if autoBallEnabled then
             local balls = aas_getAllBalls()
             for _, ball in ipairs(balls) do
                 local already = false
-                for _, pb in ipairs(S.pendingBalls) do if pb == ball then already = true break end end
-                if not already then table.insert(S.pendingBalls, ball) newBallCount = newBallCount + 1 end
+                for _, pb in ipairs(pendingBalls) do if pb == ball then already = true break end end
+                if not already then table.insert(pendingBalls, ball) newBallCount = newBallCount + 1 end
             end
         end
 
-        if S.autoCommandmentEnabled then
+        if autoCommandmentEnabled then
             local cmdFolder = workspace:FindFirstChild("World12Commandments")
             if cmdFolder then
                 for _, child in ipairs(cmdFolder:GetChildren()) do
                     if child.Name:match("^Commandment_") then
                         local already = false
-                        for _, pc in ipairs(S.pendingBalls) do if pc == child then already = true break end end
-                        if not already then table.insert(S.pendingBalls, child) newBallCount = newBallCount + 1 end
+                        for _, pc in ipairs(pendingBalls) do if pc == child then already = true break end end
+                        if not already then table.insert(pendingBalls, child) newBallCount = newBallCount + 1 end
                     end
                 end
             end
         end
 
-        local hasPendingNow = (#S.pendingCrows > 0) or (#S.pendingBalls > 0)
+        local hasPendingNow = (#pendingCrows > 0) or (#pendingBalls > 0)
         if hasPendingNow and not hadPendingBefore then
-            S.pendingCrowBallReadyAt = tick() + AAS_CROW_BALL_GRACE
+            pendingCrowBallReadyAt = tick() + AAS_CROW_BALL_GRACE
         end
 
         if newCrowCount > 0 or newBallCount > 0 then
-            Library:Notify("Detected Spawn - Queued " .. tostring(#S.pendingCrows) .. " crow(s), " .. tostring(#S.pendingBalls) .. " ball(s). Harvesting in " .. tostring(AAS_CROW_BALL_GRACE) .. "s...")
+            Window:Notify({ Title = "Euclidean", Content = "Detected Spawn - Queued " .. tostring(#pendingCrows) .. " crow(s), " .. tostring(#pendingBalls) .. " ball(s). Harvesting in " .. tostring(AAS_CROW_BALL_GRACE) .. "s...", Duration = 3, Type = "Info" })
         end
 
         if hasPendingNow then
             local aliveCrows = {}
-            for _, crow in ipairs(S.pendingCrows) do if crow and crow.Parent then table.insert(aliveCrows, crow) end end
-            S.pendingCrows = aliveCrows
+            for _, crow in ipairs(pendingCrows) do if crow and crow.Parent then table.insert(aliveCrows, crow) end end
+            pendingCrows = aliveCrows
             local aliveBalls = {}
-            for _, ball in ipairs(S.pendingBalls) do if ball and ball.Parent then table.insert(aliveBalls, ball) end end
-            S.pendingBalls = aliveBalls
+            for _, ball in ipairs(pendingBalls) do if ball and ball.Parent then table.insert(aliveBalls, ball) end end
+            pendingBalls = aliveBalls
         end
 
-        hasPendingNow = (#S.pendingCrows > 0) or (#S.pendingBalls > 0)
+        hasPendingNow = (#pendingCrows > 0) or (#pendingBalls > 0)
 
         if hasPendingNow then
             local highPriorityPresent, _ = aas_isHighPrioritySpawnOrRunPresent()
-            if not highPriorityPresent and S.pendingCrowBallReadyAt > 0 and tick() >= S.pendingCrowBallReadyAt then
+            if not highPriorityPresent and pendingCrowBallReadyAt > 0 and tick() >= pendingCrowBallReadyAt then
                 local snapshot = aas_snapshotAndPauseActivities()
-                Library:Notify("Harvesting items now...")
+                Window:Notify({ Title = "Euclidean", Content = "Harvesting items now...", Duration = 3, Type = "Info" })
 
                 local crowClaimedCount = 0
-                if #S.pendingCrows > 0 then
+                if #pendingCrows > 0 then
                     aas_changeWorldAndWait(6) task.wait(0.5)
-                    for _, crow in ipairs(S.pendingCrows) do
+                    for _, crow in ipairs(pendingCrows) do
                         if crow and crow.Parent then pcall(function() aas_claimObject(crow) end) crowClaimedCount = crowClaimedCount + 1 task.wait(1) end
                     end
-                    S.pendingCrows = {}
+                    pendingCrows = {}
                 end
 
                 local ballClaimedCount = 0
-                if #S.pendingBalls > 0 then
+                if #pendingBalls > 0 then
                     local world8Items, world12Items = {}, {}
-                    for _, item in ipairs(S.pendingBalls) do
+                    for _, item in ipairs(pendingBalls) do
                         if item and item.Parent then
                             if item.Name:match("^Commandment_") then table.insert(world12Items, item)
                             else table.insert(world8Items, item) end
@@ -4050,154 +4369,22 @@ function aas_crowBallClaimProcessor()
                             if cmd and cmd.Parent then pcall(function() aas_claimObject(cmd) end) ballClaimedCount = ballClaimedCount + 1 task.wait(1) end
                         end
                     end
-                    S.pendingBalls = {}
+                    pendingBalls = {}
                 end
 
-                S.pendingCrowBallReadyAt = 0
-                Library:Notify("Harvest Complete - " .. tostring(crowClaimedCount) .. " crow(s), " .. tostring(ballClaimedCount) .. " ball(s)/commandment(s)")
+                pendingCrowBallReadyAt = 0
+                Window:Notify({ Title = "Euclidean", Content = "Harvest Complete - " .. tostring(crowClaimedCount) .. " crow(s), " .. tostring(ballClaimedCount) .. " ball(s)/commandment(s)", Duration = 3, Type = "Info" })
                 aas_resumeFromSnapshot(snapshot)
             end
         else
-            S.pendingCrowBallReadyAt = 0
+            pendingCrowBallReadyAt = 0
         end
 
         task.wait(1)
     end
-    S.pendingCrows = {} S.pendingBalls = {} S.pendingCrowBallReadyAt = 0
+    pendingCrows = {} pendingBalls = {} pendingCrowBallReadyAt = 0
 end
 
--- ══════════════════════════════════════════
---   SERVER HOP SYSTEMS
--- ══════════════════════════════════════════
-
-local AC_visited = {}
-local AC_serverCache = {}
-local AC_backoffUntil = 0
-local AC_fetching = false
-
-function AC_markVisited(jobId) if not jobId or jobId == "" then return end AC_visited[jobId] = os.time() end
-AC_markVisited(game.JobId)
-
-function AC_httpJson(url)
-    local req = request or http_request or (syn and syn.request)
-    if req then
-        local ok, res = pcall(req, { Url = url, Method = "GET" })
-        if not ok then return nil, "err" end
-        if res.StatusCode == 429 then return nil, "429" end
-        if res.StatusCode ~= 200 then return nil, tostring(res.StatusCode) end
-        local ok2, dec = pcall(function() return HttpService:JSONDecode(res.Body) end)
-        return ok2 and dec or nil, ok2 and "ok" or "decode"
-    end
-    local ok, body = pcall(function() return game:HttpGet(url) end)
-    if not ok or body == "" then return nil, "err" end
-    local ok2, dec = pcall(function() return HttpService:JSONDecode(body) end)
-    return ok2 and dec or nil, ok2 and "ok" or "decode"
-end
-
-function AC_fetchServers()
-    if AC_fetching or os.time() < AC_backoffUntil then return end
-    AC_fetching = true
-    local seen = {}
-    for _, id in ipairs(AC_serverCache) do seen[id] = true end
-    local cursor = ""
-    for page = 1, 3 do
-        local url = ("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Desc&limit=100"):format(game.PlaceId)
-        if cursor ~= "" then url = url .. "&cursor=" .. cursor end
-        local dec, why = AC_httpJson(url)
-        if why == "429" then AC_backoffUntil = os.time() + 60 break end
-        if not dec or not dec.data then break end
-        for _, srv in ipairs(dec.data) do
-            if srv.id ~= game.JobId and not AC_visited[srv.id] and not seen[srv.id]
-                and srv.playing and srv.maxPlayers and srv.playing < srv.maxPlayers then
-                AC_serverCache[#AC_serverCache + 1] = srv.id
-                seen[srv.id] = true
-            end
-        end
-        cursor = dec.nextPageCursor or ""
-        if cursor == "" then break end
-        if page < 3 then task.wait(1) end
-    end
-    AC_fetching = false
-end
-
-task.spawn(function()
-    while true do
-        if #AC_serverCache < 12 and os.time() >= AC_backoffUntil then AC_fetchServers() end
-        task.wait(5)
-    end
-end)
-
-function AC_serverHop()
-    if #AC_serverCache == 0 then
-        AC_fetchServers()
-        local deadline = os.clock() + 5
-        while AC_fetching and os.clock() < deadline do task.wait(0.1) end
-    end
-    Library:Notify("Scanning active public servers (" .. #AC_serverCache .. " cached)...")
-    local failed = false
-    local conn = game:GetService("TeleportService").TeleportInitFailed:Connect(function() failed = true end)
-    AC_markVisited(game.JobId)
-    for attempt = 1, 8 do
-        if #AC_serverCache == 0 then AC_fetchServers() task.wait(3) end
-        if #AC_serverCache == 0 then break end
-        local i = math.random(1, #AC_serverCache)
-        local pick = table.remove(AC_serverCache, i)
-        if not AC_visited[pick] then
-            failed = false AC_markVisited(pick)
-            pcall(function() game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, pick, LocalPlayer) end)
-            local deadline = os.clock() + 4
-            while not failed and os.clock() < deadline do task.wait(0.1) end
-            if not failed then break end
-        end
-    end
-    conn:Disconnect()
-end
-
--- ══════════════════════════════════════════
---   SERVER HOP FARM
--- ══════════════════════════════════════════
-
-function aas_serverHopFarmLoop()
-    while S.serverHopFarmEnabled do
-        local targets = S.serverHopFarmTargets or {}
-        local foundAny, claimedAny = false, false
-
-        if targets["Crow"] then
-            local crows = aas_getAllCrows()
-            if #crows > 0 then
-                foundAny = true aas_changeWorldAndWait(6) task.wait(0.5)
-                for _, crow in ipairs(crows) do
-                    if crow and crow.Parent then pcall(function() aas_claimObject(crow) end) claimedAny = true task.wait(1) end
-                end
-            end
-        end
-
-        if targets["Ball"] then
-            local balls = aas_getAllBalls()
-            if #balls > 0 then
-                foundAny = true aas_changeWorldAndWait(8) task.wait(0.5)
-                for _, ball in ipairs(balls) do
-                    if ball and ball.Parent then pcall(function() aas_claimObject(ball) end) claimedAny = true task.wait(1) end
-                end
-            end
-        end
-
-        if targets["Commandment"] then
-            local cmds = aas_getAllCommandments()
-            if #cmds > 0 then
-                foundAny = true aas_changeWorldAndWait(12) task.wait(0.5)
-                for _, cmd in ipairs(cmds) do
-                    if cmd and cmd.Parent then pcall(function() aas_claimObject(cmd) end) claimedAny = true task.wait(1) end
-                end
-            end
-        end
-
-        if not foundAny then AC_serverHop() task.wait(10)
-        elseif claimedAny then Library:Notify("Items secured! Re-scanning...") task.wait(2)
-        else task.wait(2)
-        end
-    end
-end
 
 -- ══════════════════════════════════════════
 --   AUTOMATION CONTROLS
@@ -4205,7 +4392,7 @@ end
 
 function aas_autoClick()
     task.spawn(function()
-        while S.autoClickRunning do
+        while autoClickRunning do
             pcall(function() aas_clickRemote:Fire() end)
             task.wait(0.05)
         end
@@ -4219,7 +4406,7 @@ function aas_toggleAutoStat(statName, enabled)     return pcall(function() aas_a
 function aas_toggleAutoClaimRewards(enabled)       return pcall(function() aas_autoClaimRewardsRemote:Fire(enabled) end) end
 
 function aas_redeemAllCodes()
-    Library:Notify("Redeeming " .. #aas_codes .. " codes...")
+    Window:Notify({ Title = "Euclidean", Content = "Redeeming " .. #aas_codes .. " codes...", Duration = 3, Type = "Info" })
     task.spawn(function()
         local successCount = 0
         for _, code in ipairs(aas_codes) do
@@ -4227,7 +4414,7 @@ function aas_redeemAllCodes()
             if ok then successCount = successCount + 1 end
             task.wait(1)
         end
-        Library:Notify("Codes Processed - " .. successCount .. "/" .. #aas_codes .. " redeemed!")
+        Window:Notify({ Title = "Euclidean", Content = "Codes Processed - " .. successCount .. "/" .. #aas_codes .. " redeemed!", Duration = 3, Type = "Info" })
     end)
 end
 
@@ -4236,131 +4423,126 @@ end
 -- ══════════════════════════════════════════
 
 function aas_cleanup()
-    S.farmEnabled = false
-    if S.farmThread then task.cancel(S.farmThread) S.farmThread = nil end
+    farmEnabled = false
+    if farmThread then task.cancel(farmThread) farmThread = nil end
 
-    for rk in pairs(S.raidEnabled) do S.raidEnabled[rk] = false end
-    if S.raidThread then task.cancel(S.raidThread) S.raidThread = nil end
-    if S.activeRaidKey and aas_raidArenaExists(S.activeRaidKey) then aas_leaveRaid() end
-    S.activeRaidKey = nil
+    for rk in pairs(raidEnabled) do raidEnabled[rk] = false end
+    if raidThread then task.cancel(raidThread) raidThread = nil end
+    if activeRaidKey and aas_raidArenaExists(activeRaidKey) then aas_leaveRaid() end
+    activeRaidKey = nil
 
-    for dk in pairs(S.defenseEnabled) do S.defenseEnabled[dk] = false end
-    if S.defenseThread then task.cancel(S.defenseThread) S.defenseThread = nil end
-    if S.activeDefenseKey and aas_defenseArenaExists(S.activeDefenseKey) then aas_leaveDefense() end
-    S.activeDefenseKey = nil
+    for dk in pairs(defenseEnabled) do defenseEnabled[dk] = false end
+    if defenseThread then task.cancel(defenseThread) defenseThread = nil end
+    if activeDefenseKey and aas_defenseArenaExists(activeDefenseKey) then aas_leaveDefense() end
+    activeDefenseKey = nil
 
-    for dunk in pairs(S.dungeonEnabled) do S.dungeonEnabled[dunk] = false end
-    for dunk, t in pairs(S.dungeonThreads) do task.cancel(t) S.dungeonThreads[dunk] = nil end
-    if S.activeDungeonKey and aas_dungeonArenaExists(S.activeDungeonKey) then aas_leaveDungeon() end
-    S.activeDungeonKey = nil
+    for dunk in pairs(dungeonEnabled) do dungeonEnabled[dunk] = false end
+    for dunk, t in pairs(dungeonThreads) do task.cancel(t) dungeonThreads[dunk] = nil end
+    if activeDungeonKey and aas_dungeonArenaExists(activeDungeonKey) then aas_leaveDungeon() end
+    activeDungeonKey = nil
 
-    for tk in pairs(S.trialEnabled) do S.trialEnabled[tk] = false end
-    for tk, t in pairs(S.trialThreads) do task.cancel(t) S.trialThreads[tk] = nil end
+    for tk in pairs(trialEnabled) do trialEnabled[tk] = false end
+    for tk, t in pairs(trialThreads) do task.cancel(t) trialThreads[tk] = nil end
 
-    S.gateEnabled = false
-    if S.gateThread then task.cancel(S.gateThread) S.gateThread = nil end
+    gateEnabled = false
+    if gateThread then task.cancel(gateThread) gateThread = nil end
 
-    for _, gk in ipairs(S.sortedGachaKeys) do
-        S.gachaEnabled[gk] = false
-        if S.gachaThreads[gk] then task.cancel(S.gachaThreads[gk]) S.gachaThreads[gk] = nil end
+    for _, gk in ipairs(sortedGachaKeys) do
+        gachaEnabled[gk] = false
+        if gachaThreads[gk] then task.cancel(gachaThreads[gk]) gachaThreads[gk] = nil end
     end
 
-    S.autoFuseAllEnabled = false
-    if S.fuseAllThread then task.cancel(S.fuseAllThread) S.fuseAllThread = nil end
+    autoFuseAllEnabled = false
+    if fuseAllThread then task.cancel(fuseAllThread) fuseAllThread = nil end
 
-    S.autoCrowEnabled = false S.autoBallEnabled = false S.autoCommandmentEnabled = false
-    if S.crowBallClaimThread then task.cancel(S.crowBallClaimThread) S.crowBallClaimThread = nil end
-    S.pendingCrows = {} S.pendingBalls = {}
+    autoCrowEnabled = false autoBallEnabled = false autoCommandmentEnabled = false
+    if crowBallClaimThread then task.cancel(crowBallClaimThread) crowBallClaimThread = nil end
+    pendingCrows = {} pendingBalls = {}
 
-    S.passiveAutoEnabled = false
-    if S.passiveThread then task.cancel(S.passiveThread) S.passiveThread = nil end
+    passiveAutoEnabled = false
+    if passiveThread then task.cancel(passiveThread) passiveThread = nil end
 
-    S.titanAutoEnabled = false
-    if S.titanThread then task.cancel(S.titanThread) S.titanThread = nil end
+    titanAutoEnabled = false
+    if titanThread then task.cancel(titanThread) titanThread = nil end
 
-    S.swordPassive1Enabled = false
-    if S.swordPassive1Thread then task.cancel(S.swordPassive1Thread) S.swordPassive1Thread = nil end
-    S.swordPassive2Enabled = false
-    if S.swordPassive2Thread then task.cancel(S.swordPassive2Thread) S.swordPassive2Thread = nil end
+    swordPassive1Enabled = false
+    if swordPassive1Thread then task.cancel(swordPassive1Thread) swordPassive1Thread = nil end
+    swordPassive2Enabled = false
+    if swordPassive2Thread then task.cancel(swordPassive2Thread) swordPassive2Thread = nil end
 
-    S.grimoire1Enabled = false
-    if S.grimoire1Thread then task.cancel(S.grimoire1Thread) S.grimoire1Thread = nil end
-    S.grimoire2Enabled = false
-    if S.grimoire2Thread then task.cancel(S.grimoire2Thread) S.grimoire2Thread = nil end
+    grimoire1Enabled = false
+    if grimoire1Thread then task.cancel(grimoire1Thread) grimoire1Thread = nil end
+    grimoire2Enabled = false
+    if grimoire2Thread then task.cancel(grimoire2Thread) grimoire2Thread = nil end
 
-    for k in pairs(S.progressionEnabled) do S.progressionEnabled[k] = false end
-    for k, t in pairs(S.progressionThreads) do task.cancel(t) S.progressionThreads[k] = nil end
+    for k in pairs(progressionEnabled) do progressionEnabled[k] = false end
+    for k, t in pairs(progressionThreads) do task.cancel(t) progressionThreads[k] = nil end
 
-    for k in pairs(S.rangeUpgradeEnabled) do S.rangeUpgradeEnabled[k] = false end
-    for k, t in pairs(S.rangeUpgradeThreads) do task.cancel(t) S.rangeUpgradeThreads[k] = nil end
+    for k in pairs(rangeUpgradeEnabled) do rangeUpgradeEnabled[k] = false end
+    for k, t in pairs(rangeUpgradeThreads) do task.cancel(t) rangeUpgradeThreads[k] = nil end
 
-    for k in pairs(S.craftEnabled) do S.craftEnabled[k] = false end
-    for k, t in pairs(S.craftThreads) do task.cancel(t) S.craftThreads[k] = nil end
+    for k in pairs(craftEnabled) do craftEnabled[k] = false end
+    for k, t in pairs(craftThreads) do task.cancel(t) craftThreads[k] = nil end
 
-    S.starEnabled = false
-    if S.starThread then task.cancel(S.starThread) S.starThread = nil end
+    starEnabled = false
+    if starThread then task.cancel(starThread) starThread = nil end
 
-    S.autoClickRunning = false S.gateCooldown = false
+    autoClickRunning = false gateCooldown = false
 
     aas_toggleAutoClaimAchievements(false)
     aas_toggleAutoAvatar(false)
     aas_toggleAutoRank(false)
-    aas_toggleAutoStat(S.currentStatSelection, false)
+    aas_toggleAutoStat(currentStatSelection, false)
     aas_toggleAutoClaimRewards(false)
 
-    S.SwordWorld0Enabled = false
-    if S.SwordWorld0Thread then task.cancel(S.SwordWorld0Thread) S.SwordWorld0Thread = nil end
-    S.SwordWorld8Enabled = false
-    if S.SwordWorld8Thread then task.cancel(S.SwordWorld8Thread) S.SwordWorld8Thread = nil end
+    SwordWorld0Enabled = false
+    if SwordWorld0Thread then task.cancel(SwordWorld0Thread) SwordWorld0Thread = nil end
+    SwordWorld8Enabled = false
+    if SwordWorld8Thread then task.cancel(SwordWorld8Thread) SwordWorld8Thread = nil end
 
-    S.antiAfkEnabled = false
-    if S.antiAfkThread then task.cancel(S.antiAfkThread) S.antiAfkThread = nil end
+    petPassiveAutoEnabled = false
+    if petPassiveThread then task.cancel(petPassiveThread) petPassiveThread = nil end
 
-    S.petPassiveAutoEnabled = false
-    if S.petPassiveThread then task.cancel(S.petPassiveThread) S.petPassiveThread = nil end
+    potionContextEnabled = false potionAutoUseEnabled = false
+    if potionAutoUseThread then task.cancel(potionAutoUseThread) potionAutoUseThread = nil end
+    currentPotionContext = nil
 
-    S.potionContextEnabled = false S.potionAutoUseEnabled = false
-    if S.potionAutoUseThread then task.cancel(S.potionAutoUseThread) S.potionAutoUseThread = nil end
-    S.currentPotionContext = nil
+    globalQuestEnabled = false
+    if globalQuestThread then task.cancel(globalQuestThread) globalQuestThread = nil end
+    globalQuestAutoClaimEnabled = false
+    if globalQuestClaimThread then task.cancel(globalQuestClaimThread) globalQuestClaimThread = nil end
 
-    S.globalQuestEnabled = false
-    if S.globalQuestThread then task.cancel(S.globalQuestThread) S.globalQuestThread = nil end
-    S.globalQuestAutoClaimEnabled = false
-    if S.globalQuestClaimThread then task.cancel(S.globalQuestClaimThread) S.globalQuestClaimThread = nil end
+    autoRelicUpgradeEnabled = false
+    if autoRelicUpgradeThread then task.cancel(autoRelicUpgradeThread) autoRelicUpgradeThread = nil end
+    autoRelicAscendEnabled = false
+    if autoRelicAscendThread then task.cancel(autoRelicAscendThread) autoRelicAscendThread = nil end
 
-    S.autoRelicUpgradeEnabled = false
-    if S.autoRelicUpgradeThread then task.cancel(S.autoRelicUpgradeThread) S.autoRelicUpgradeThread = nil end
-    S.autoRelicAscendEnabled = false
-    if S.autoRelicAscendThread then task.cancel(S.autoRelicAscendThread) S.autoRelicAscendThread = nil end
+    autoEvolutionEnabled = false
+    if autoEvolutionThread then task.cancel(autoEvolutionThread) autoEvolutionThread = nil end
 
-    S.autoEvolutionEnabled = false
-    if S.autoEvolutionThread then task.cancel(S.autoEvolutionThread) S.autoEvolutionThread = nil end
+    for sysKey in pairs(upgrades2Enabled2) do upgrades2Enabled2[sysKey] = false end
+    for sysKey, t in pairs(upgrades2Threads2) do task.cancel(t) upgrades2Threads2[sysKey] = nil end
 
-    for sysKey in pairs(S.upgrades2Enabled2) do S.upgrades2Enabled2[sysKey] = false end
-    for sysKey, t in pairs(S.upgrades2Threads2) do task.cancel(t) S.upgrades2Threads2[sysKey] = nil end
-
-    S.promotionEnabled = false
-    if S.promotionThread then task.cancel(S.promotionThread) S.promotionThread = nil end
+    promotionEnabled = false
+    if promotionThread then task.cancel(promotionThread) promotionThread = nil end
     aas_promoStopBackgroundThreads()
 
-    for rk in pairs(S.rushEnabled) do S.rushEnabled[rk] = false end
-    for rk, t in pairs(S.rushThreads) do task.cancel(t) S.rushThreads[rk] = nil end
-    if S.activeRushKey and aas_rushArenaExists(S.activeRushKey) then aas_leaveRush() end
-    S.activeRushKey = nil
+    for rk in pairs(rushEnabled) do rushEnabled[rk] = false end
+    for rk, t in pairs(rushThreads) do task.cancel(t) rushThreads[rk] = nil end
+    if activeRushKey and aas_rushArenaExists(activeRushKey) then aas_leaveRush() end
+    activeRushKey = nil
 
-    for k in pairs(S.skillTreeEnabled) do S.skillTreeEnabled[k] = false end
-    for k, t in pairs(S.skillTreeThreads) do task.cancel(t) S.skillTreeThreads[k] = nil end
+    for k in pairs(skillTreeEnabled) do skillTreeEnabled[k] = false end
+    for k, t in pairs(skillTreeThreads) do task.cancel(t) skillTreeThreads[k] = nil end
 
-    for k in pairs(S.constellationEnabled) do S.constellationEnabled[k] = false end
-    for k, t in pairs(S.constellationThreads) do task.cancel(t) S.constellationThreads[k] = nil end
+    for k in pairs(constellationEnabled) do constellationEnabled[k] = false end
+    for k, t in pairs(constellationThreads) do task.cancel(t) constellationThreads[k] = nil end
 
-    S.serverHopFarmEnabled = false
-    if S.serverHopFarmThread then task.cancel(S.serverHopFarmThread) S.serverHopFarmThread = nil end
 
-    for bossId in pairs(S.spawnBossEnabled) do S.spawnBossEnabled[bossId] = false end
-    for bossId, t in pairs(S.spawnBossThreads) do task.cancel(t) S.spawnBossThreads[bossId] = nil end
+    for bossId in pairs(spawnBossEnabled) do spawnBossEnabled[bossId] = false end
+    for bossId, t in pairs(spawnBossThreads) do task.cancel(t) spawnBossThreads[bossId] = nil end
 
-    print("Prism Unloaded Successfully.")
+    print("Euclidean Unloaded Successfully.")
 end
 
 -- ══════════════════════════════════════════
@@ -4371,18 +4553,18 @@ task.spawn(function()
     pcall(function()
         aas_promotionStateRemote:Connect(function(payload)
             if type(payload) ~= "table" then return end
-            S.promotionLiveState = payload
-            S.promotionCurrentRank = tonumber(payload.PromotionRank) or 0
-            S.promotionNextRank = payload.NextRank
-            S.promotionCanPromote = payload.CanPromote == true
-            S.promotionStateVersion = (S.promotionStateVersion or 0) + 1
+            promotionLiveState = payload
+            promotionCurrentRank = tonumber(payload.PromotionRank) or 0
+            promotionNextRank = payload.NextRank
+            promotionCanPromote = payload.CanPromote == true
+            promotionStateVersion = (promotionStateVersion or 0) + 1
             aas_updatePromotionUi()
         end)
     end)
     pcall(function()
         aas_promotionPromoteResultRemote:Connect(function(success, errCode)
             local msg = success and "Promoted successfully!" or (errCode == "missions_incomplete" and "Complete all missions first." or errCode == "max_rank" and "Already at max promotion." or "Could not promote.")
-            Library:Notify("Promotion - "..msg)
+            Window:Notify({ Title = "Euclidean", Content = "Promotion - "..msg, Duration = 3, Type = "Info" })
             task.wait(0.2) pcall(function() aas_promotionStateRequestRemote:Fire() end)
         end)
     end)
@@ -4392,877 +4574,619 @@ task.spawn(function()
     pcall(function()
         aas_spawnBossStateRemote:Connect(function(payload)
             if type(payload) == "table" then
-                S.spawnBossActiveState = payload
+                spawnBossActiveState = payload
             end
         end)
     end)
     pcall(function() aas_spawnBossStateRequestRemote:Fire() end)
 end)
 
--- ══════════════════════════════════════════
 --   MAIN TAB (SOLID COLORS)
 -- ══════════════════════════════════════════
 
 do
-    local MainLeft = Tabs.Main:AddLeftGroupbox("Main Automation", "zap")
+    local MainLeft = Tabs.Automation:AddLeftGroupbox({ Name = "Main Automation", Icon = "zap" })
 
-    MainLeft:AddToggle("AutoClick", {
-        Text = "Auto Click", Default = false,
-        Callback = function(value)
-            S.autoClickRunning = value
-            if value then aas_autoClick() Library:Notify("Auto Click - Started!") end
-        end,
-    })
-    MainLeft:AddToggle("AutoClaimAchievements", {
-        Text = "Auto Claim Achievements", Default = false,
-        Callback = function(value)
+    MainLeft:CreateToggle({ Name = "Auto Click", Flag = "AutoClick", CurrentValue = false, Callback = function(value)
+            autoClickRunning = value
+            if value then aas_autoClick() Window:Notify({ Title = "Euclidean", Content = "Auto Click - Started!", Duration = 3, Type = "Info" }) end
+        end })
+    MainLeft:CreateToggle({ Name = "Auto Claim Achievements", Flag = "AutoClaimAchievements", CurrentValue = false, Callback = function(value)
             aas_toggleAutoClaimAchievements(value)
-            Library:Notify("Auto Claim Achievements - "..(value and "Enabled!" or "Disabled"))
-        end,
-    })
-    MainLeft:AddToggle("AutoAvatar", {
-        Text = "Auto Equip Best Avatar", Default = false,
-        Callback = function(value)
+            Window:Notify({ Title = "Euclidean", Content = "Auto Claim Achievements - "..(value and "Enabled!" or "Disabled"), Duration = 3, Type = "Info" })
+        end })
+    MainLeft:CreateToggle({ Name = "Auto Equip Best Avatar", Flag = "AutoAvatar", CurrentValue = false, Callback = function(value)
             aas_toggleAutoAvatar(value)
-            Library:Notify("Auto Equip Avatar - "..(value and "Enabled!" or "Disabled"))
-        end,
-    })
-    MainLeft:AddToggle("AutoRank", {
-        Text = "Auto Rank Up", Default = false,
-        Callback = function(value)
+            Window:Notify({ Title = "Euclidean", Content = "Auto Equip Avatar - "..(value and "Enabled!" or "Disabled"), Duration = 3, Type = "Info" })
+        end })
+    MainLeft:CreateToggle({ Name = "Auto Rank Up", Flag = "AutoRank", CurrentValue = false, Callback = function(value)
             aas_toggleAutoRank(value)
-            Library:Notify("Auto Rank Up - "..(value and "Enabled!" or "Disabled"))
-        end,
-    })
-    MainLeft:AddToggle("AutoClaimRewards", {
-        Text = "Auto Claim Time Rewards", Default = false,
-        Callback = function(value)
+            Window:Notify({ Title = "Euclidean", Content = "Auto Rank Up - "..(value and "Enabled!" or "Disabled"), Duration = 3, Type = "Info" })
+        end })
+    MainLeft:CreateToggle({ Name = "Auto Claim Time Rewards", Flag = "AutoClaimRewards", CurrentValue = false, Callback = function(value)
             aas_toggleAutoClaimRewards(value)
-            Library:Notify("Auto Claim Rewards - "..(value and "Enabled!" or "Disabled"))
-        end,
-    })
-    MainLeft:AddDivider()
-    MainLeft:AddDropdown("StatSelection", {
-        Values = { "Power", "Yen", "Damage", "Luck", "Xp", "Drop" },
-        Default = 1, Text = "Select Stat to Auto Upgrade",
-        Callback = function(value)
-            S.currentStatSelection = value
-            if S.autoStatEnabled then aas_toggleAutoStat(value, true) end
-        end,
-    })
-    MainLeft:AddToggle("AutoStat", {
-        Text = "Enable Auto Stat", Default = false,
-        Callback = function(value)
-            S.autoStatEnabled = value
-            aas_toggleAutoStat(S.currentStatSelection, value)
-            Library:Notify("Auto Stat - "..(value and ("Enabled for "..S.currentStatSelection) or "Disabled"))
-        end,
-    })
+            Window:Notify({ Title = "Euclidean", Content = "Auto Claim Rewards - "..(value and "Enabled!" or "Disabled"), Duration = 3, Type = "Info" })
+        end })
+    MainLeft:CreateDivider()
+    MainLeft:CreateDropdown({ Name = "Select Stat to Auto Upgrade", Options = { "Power", "Yen", "Damage", "Luck", "Xp", "Drop" }, CurrentOption = 1, Flag = "StatSelection", Callback = function(value)
+            currentStatSelection = value
+            if autoStatEnabled then aas_toggleAutoStat(value, true) end
+        end })
+    MainLeft:CreateToggle({ Name = "Enable Auto Stat", Flag = "AutoStat", CurrentValue = false, Callback = function(value)
+            autoStatEnabled = value
+            aas_toggleAutoStat(currentStatSelection, value)
+            Window:Notify({ Title = "Euclidean", Content = "Auto Stat - "..(value and ("Enabled for "..currentStatSelection) or "Disabled"), Duration = 3, Type = "Info" })
+        end })
 
-    local MainRight = Tabs.Main:AddRightGroupbox("Utilities", "wrench")
+    local MainRight = Tabs.Automation:AddRightGroupbox({ Name = "Utilities", Icon = "wrench" })
 
-    MainRight:AddToggle("AntiAfkEnabled", {
-        Text = "Anti AFK", Default = false,
-        Callback = function(value)
-            S.antiAfkEnabled = value
+    MainRight:CreateButton({ Name = "Redeem All Codes", Callback = aas_redeemAllCodes })
+
+    local CrowGroup = Tabs.Harvest:AddLeftGroupbox({ Name = "Auto Crow / Ball / Commandment", Icon = "feather" })
+    CrowGroup:CreateLabel("Items are claimed AFTER Trial/Gate/Dungeon finishes.")
+    CrowGroup:CreateDivider()
+    CrowGroup:CreateToggle({ Name = "Auto Crow - World 6", Flag = "AutoCrow", CurrentValue = false, Callback = function(value)
+            autoCrowEnabled = value
             if value then
-                if S.antiAfkThread then task.cancel(S.antiAfkThread) end
-                S.antiAfkThread = task.spawn(function()
-                    local vim = game:GetService("VirtualInputManager")
-                    while S.antiAfkEnabled do
-                        vim:SendKeyEvent(true, Enum.KeyCode.Space, false, game) task.wait(0.1)
-                        vim:SendKeyEvent(false, Enum.KeyCode.Space, false, game) task.wait(120)
-                    end
-                end)
-                Library:Notify("Anti AFK - Enabled!")
+                if not crowBallClaimThread then crowBallClaimThread = task.spawn(aas_crowBallClaimProcessor) end
+                Window:Notify({ Title = "Euclidean", Content = "Auto Crow - Enabled!", Duration = 3, Type = "Info" })
             else
-                if S.antiAfkThread then task.cancel(S.antiAfkThread) S.antiAfkThread = nil end
-            end
-        end,
-    })
-    MainRight:AddButton({ Text = "Redeem All Codes", Func = aas_redeemAllCodes })
-
-    local CrowGroup = Tabs.Main:AddRightGroupbox("Auto Crow / Ball / Commandment", "feather")
-    CrowGroup:AddLabel("Items are claimed AFTER Trial/Gate/Dungeon finishes.", true)
-    CrowGroup:AddDivider()
-    CrowGroup:AddToggle("AutoCrow", {
-        Text = "Auto Crow (World 6)", Default = false,
-        Callback = function(value)
-            S.autoCrowEnabled = value
-            if value then
-                if not S.crowBallClaimThread then S.crowBallClaimThread = task.spawn(aas_crowBallClaimProcessor) end
-                Library:Notify("Auto Crow - Enabled!")
-            else
-                if not S.autoBallEnabled and not S.autoCommandmentEnabled then
-                    if S.crowBallClaimThread then task.cancel(S.crowBallClaimThread) S.crowBallClaimThread = nil end
+                if not autoBallEnabled and not autoCommandmentEnabled then
+                    if crowBallClaimThread then task.cancel(crowBallClaimThread) crowBallClaimThread = nil end
                 end
-                S.pendingCrows = {}
+                pendingCrows = {}
             end
-        end,
-    })
-    CrowGroup:AddToggle("AutoBall", {
-        Text = "Auto Ball (World 8)", Default = false,
-        Callback = function(value)
-            S.autoBallEnabled = value
+        end })
+    CrowGroup:CreateToggle({ Name = "Auto Ball - World 8", Flag = "AutoBall", CurrentValue = false, Callback = function(value)
+            autoBallEnabled = value
             if value then
-                if not S.crowBallClaimThread then S.crowBallClaimThread = task.spawn(aas_crowBallClaimProcessor) end
-                Library:Notify("Auto Ball - Enabled!")
+                if not crowBallClaimThread then crowBallClaimThread = task.spawn(aas_crowBallClaimProcessor) end
+                Window:Notify({ Title = "Euclidean", Content = "Auto Ball - Enabled!", Duration = 3, Type = "Info" })
             else
-                if not S.autoCrowEnabled and not S.autoCommandmentEnabled then
-                    if S.crowBallClaimThread then task.cancel(S.crowBallClaimThread) S.crowBallClaimThread = nil end
+                if not autoCrowEnabled and not autoCommandmentEnabled then
+                    if crowBallClaimThread then task.cancel(crowBallClaimThread) crowBallClaimThread = nil end
                 end
-                S.pendingBalls = {}
+                pendingBalls = {}
             end
-        end,
-    })
-    CrowGroup:AddToggle("AutoCommandment", {
-        Text = "Auto Commandment (World 12)", Default = false,
-        Callback = function(value)
-            S.autoCommandmentEnabled = value
+        end })
+    CrowGroup:CreateToggle({ Name = "Auto Commandment - World 12", Flag = "AutoCommandment", CurrentValue = false, Callback = function(value)
+            autoCommandmentEnabled = value
             if value then
-                if not S.crowBallClaimThread then S.crowBallClaimThread = task.spawn(aas_crowBallClaimProcessor) end
-                Library:Notify("Auto Commandment - Enabled!")
+                if not crowBallClaimThread then crowBallClaimThread = task.spawn(aas_crowBallClaimProcessor) end
+                Window:Notify({ Title = "Euclidean", Content = "Auto Commandment - Enabled!", Duration = 3, Type = "Info" })
             else
-                if not S.autoCrowEnabled and not S.autoBallEnabled then
-                    if S.crowBallClaimThread then task.cancel(S.crowBallClaimThread) S.crowBallClaimThread = nil end
+                if not autoCrowEnabled and not autoBallEnabled then
+                    if crowBallClaimThread then task.cancel(crowBallClaimThread) crowBallClaimThread = nil end
                 end
                 local filtered = {}
-                for _, item in ipairs(S.pendingBalls) do
-                    if not item.Name:match("^Commandment_") then table.insert(filtered, item) end
-                end
-                S.pendingBalls = filtered
-            end
-        end,
-    })
-
-    local ServerHopGroup = Tabs.Main:AddRightGroupbox("Server Hop Farm", "refresh-cw")
-    ServerHopGroup:AddLabel("Scans for items. Hops server if none found.", true)
-    ServerHopGroup:AddDropdown("ServerHopTargets", {
-        Values = { "Crow", "Ball", "Commandment" }, Multi = true, Default = nil,
-        Text = "Select Items to Farm",
-        Callback = function(val)
-            S.serverHopFarmTargets = {}
-            for item, state in pairs(val or {}) do if state then S.serverHopFarmTargets[item] = true end end
-        end,
-    })
-    ServerHopGroup:AddToggle("ServerHopFarmEnabled", {
-        Text = "Enable Server Hop Farm", Default = false,
-        Callback = function(value)
-            S.serverHopFarmEnabled = value
-            if value then
-                local anySelected = false
-                for _ in pairs(S.serverHopFarmTargets) do anySelected = true break end
-                if not anySelected then
-                    Toggles["ServerHopFarmEnabled"]:SetValue(false)
-                    Library:Notify("Server Hop Farm - Select at least one item type first!")
-                    return
-                end
-                if S.serverHopFarmThread then task.cancel(S.serverHopFarmThread) end
-                S.serverHopFarmThread = task.spawn(aas_serverHopFarmLoop)
-                Library:Notify("Server Hop Farm - Started!")
-            else
-                if S.serverHopFarmThread then task.cancel(S.serverHopFarmThread) S.serverHopFarmThread = nil end
-            end
-        end,
-    })
-
-    local SpawnBossGroup = Tabs.Main:AddLeftGroupbox("Auto Spawn Boss", "skull")
-    SpawnBossGroup:AddLabel("Spawns and farms bosses automatically.\nPauses for Trial/Gate/Dungeon.", true)
-    SpawnBossGroup:AddDivider()
-
-    if #S.sortedSpawnBossKeys == 0 then
-        SpawnBossGroup:AddLabel("No spawn boss data found.", true)
-    else
-        for _, bossId in ipairs(S.sortedSpawnBossKeys) do
-            local bossData = S.SpawnBossList[bossId]
-            local worldLabel = aas_getWorldLabel(bossData.WorldId)
-            local toggleKey = "AutoSpawnBoss_" .. bossId
-            S.spawnBossEnabled[bossId] = false
-
-            SpawnBossGroup:AddToggle(toggleKey, {
-                Text = bossData.Name .. " (" .. worldLabel .. ")",
-                Default = false,
-                Callback = function(value)
-                    if value then
-                        if S.farmEnabled or aas_anyRaidActive() or aas_anyDefenseActive() or aas_anyRushActive() then
-                            Toggles[toggleKey]:SetValue(false)
-                            Library:Notify("Blocked - Disable Farm/Raid/Defense/Rush first.")
-                            return
-                        end
-                        for _, otherBossId in ipairs(S.sortedSpawnBossKeys) do
-                            if otherBossId ~= bossId and S.spawnBossEnabled[otherBossId] then
-                                S.spawnBossEnabled[otherBossId] = false
-                                if Toggles["AutoSpawnBoss_" .. otherBossId] then
-                                    Toggles["AutoSpawnBoss_" .. otherBossId]:SetValue(false)
-                                end
-                                if S.spawnBossThreads[otherBossId] then
-                                    task.cancel(S.spawnBossThreads[otherBossId])
-                                    S.spawnBossThreads[otherBossId] = nil
-                                end
-                            end
-                        end
-
-                        S.spawnBossEnabled[bossId] = true
-                        aas_equipLoadout(S.LoadoutAssignments.Farm or "Power")
-                        aas_enterPotionContext("Farm")
-                        if S.spawnBossThreads[bossId] then task.cancel(S.spawnBossThreads[bossId]) end
-                        S.spawnBossThreads[bossId] = task.spawn(function() aas_spawnBossLoop(bossId) end)
-                        Library:Notify("Auto Spawn Boss - " .. bossData.Name .. " started!")
-                    else
-                        S.spawnBossEnabled[bossId] = false
-                        if S.spawnBossThreads[bossId] then
-                            task.cancel(S.spawnBossThreads[bossId])
-                            S.spawnBossThreads[bossId] = nil
-                        end
+                for _, item in ipairs(pendingBalls) do
+                    if not (item and item.Name and item.Name:match("^Commandment_")) then
+                        table.insert(filtered, item)
                     end
-                end,
-            })
-        end
-    end
+                end
+                pendingBalls = filtered
+            end
+        end })
+
+
 end
 
 -- ══════════════════════════════════════════
---   FARM TAB (SOLID COLORS)
+--   FARM SUBTAB
 -- ══════════════════════════════════════════
 
 do
-    local FarmControl = Tabs.Farm:AddLeftGroupbox("Farm Control", "zap")
-    FarmControl:AddToggle("AutoFarmEnabled", {
-        Text = "Enable Auto Farm", Default = false,
-        Callback = function(value)
+    local FarmControl = Tabs.MobFarm:AddLeftGroupbox({ Name = "Farm Control", Icon = "zap" })
+    FarmControl:CreateToggle({ Name = "Enable Auto Farm", Flag = "AutoFarmEnabled", CurrentValue = false, Callback = function(value)
             if value and (aas_anyRaidActive() or aas_anyDefenseActive()) then
                 Toggles.AutoFarmEnabled:SetValue(false)
-                Library:Notify("Blocked - Disable active Raid/Defense first.")
+                Window:Notify({ Title = "Euclidean", Content = "Blocked - Disable active Raid/Defense first.", Duration = 3, Type = "Info" })
                 return
             end
-            S.farmEnabled = value
+            farmEnabled = value
             if value then
-                aas_equipLoadout(S.LoadoutAssignments.Farm or "Power")
+                aas_equipLoadout(LoadoutAssignments.Farm or "Power")
                 aas_enterPotionContext("Farm")
-                if S.farmThread then task.cancel(S.farmThread) end
-                S.farmThread = task.spawn(aas_farmLoop)
-                Library:Notify("Auto Farm - Started!")
+                if farmThread then task.cancel(farmThread) end
+                farmThread = task.spawn(aas_farmLoop)
+                Window:Notify({ Title = "Euclidean", Content = "Auto Farm - Started!", Duration = 3, Type = "Info" })
             else
-                if S.farmThread then task.cancel(S.farmThread) S.farmThread = nil end
-                S.currentWorldTracked = nil
+                if farmThread then task.cancel(farmThread) farmThread = nil end
+                currentWorldTracked = nil
             end
-        end,
-    })
-    FarmControl:AddToggle("ClusterFarmEnabled", {
-        Text = "Optimized Farm (HIGH RANGE)", Default = false,
-        Callback = function(value)
-            S.clusterFarmEnabled = value
-            if value then Library:Notify("Optimized Farm - Enabled! Requires HIGH RANGE.") end
-        end,
-    })
+        end })
+    FarmControl:CreateToggle({ Name = "Optimized Farm (HIGH RANGE)", Flag = "ClusterFarmEnabled", CurrentValue = false, Callback = function(value)
+            clusterFarmEnabled = value
+            if value then Window:Notify({ Title = "Euclidean", Content = "Optimized Farm - Enabled! Requires HIGH RANGE.", Duration = 3, Type = "Info" }) end
+        end })
 
-    for i, worldIdx in ipairs(S.sortedWorldIndices) do
-        local worldData = S.WorldList[worldIdx]
+    for i, worldIdx in ipairs(sortedWorldIndices) do
+        aas_buildTick()
+        local worldData = WorldList[worldIdx]
         local dropKey = "FarmWorld_"..worldIdx
-        S.worldDropdowns[worldIdx] = dropKey
-        local enemyNames = { "None" }
-        for _, e in ipairs(worldData.enemies) do table.insert(enemyNames, e.Name) end
+        worldDropdowns[worldIdx] = dropKey
+        -- Live folder first (ground truth for what spawns), config fills gaps.
+        -- Ghost denylist: config entries that never spawn anywhere (verified live).
+        local ghostDeny = { Aldedo = true, Aurab = true, Enoma = true, Mareb = true, Urge = true }
+        local nameSet = {}
+        pcall(function()
+            local wf = workspace:FindFirstChild("Worlds")
+            local folder = wf and wf:FindFirstChild(tostring(worldIdx))
+            local ef = folder and folder:FindFirstChild("Enemies")
+            if ef then
+                for _, m in ipairs(ef:GetChildren()) do
+                    if m.Name ~= '' then nameSet[m.Name] = true end
+                end
+            end
+        end)
+        for _, e in ipairs(worldData.enemies) do
+            if not ghostDeny[e.Name] then nameSet[e.Name] = true end
+        end
+        local enemyNames = {}
+        for name in pairs(nameSet) do table.insert(enemyNames, name) end
+        table.sort(enemyNames)
 
         local WorldGroup
-        if i % 2 == 1 then WorldGroup = Tabs.Farm:AddRightGroupbox(aas_getWorldLabel(worldIdx), "map-pin")
-        else WorldGroup = Tabs.Farm:AddLeftGroupbox(aas_getWorldLabel(worldIdx), "map-pin") end
+        if i % 2 == 1 then WorldGroup = Tabs.MobFarm:AddRightGroupbox(aas_getWorldLabel(worldIdx).." - World "..worldIdx, "map-pin")
+        else WorldGroup = Tabs.MobFarm:AddLeftGroupbox(aas_getWorldLabel(worldIdx).." - World "..worldIdx, "map-pin") end
 
         local capturedIdx = worldIdx
-        WorldGroup:AddButton({
-            Text = "Teleport to "..aas_getWorldLabel(worldIdx),
-            Func = function() aas_teleportToWorld(capturedIdx) Library:Notify("Teleporting to "..aas_getWorldLabel(capturedIdx)) end,
-        })
-        if #enemyNames <= 1 then WorldGroup:AddLabel("No enemies found.", true)
+        WorldGroup:CreateButton({ Name = "Teleport to "..aas_getWorldLabel(worldIdx), Callback = function() aas_teleportToWorld(capturedIdx) Window:Notify({ Title = "Euclidean", Content = "Teleporting to "..aas_getWorldLabel(capturedIdx), Duration = 3, Type = "Info" }) end })
+        if #enemyNames <= 1 then WorldGroup:CreateLabel("No enemies found.")
         else
-            WorldGroup:AddDropdown(dropKey, {
-                Values = enemyNames, Multi = true, Default = nil,
-                Text = "Select Mobs", Searchable = #enemyNames > 6, Callback = function(_) end,
-            })
+            WorldGroup:CreateDropdown({ Name = "Select Mobs", Options = enemyNames, MultipleOptions = true, Flag = dropKey, Callback = function(_) end })
         end
     end
 end
 
--- ══════════════════════════════════════════
---   RAID SUBTAB (SOLID COLORS)
+--   RAIDS SUBTAB (TABBOX)
 -- ══════════════════════════════════════════
 
 do
-    local RaidInfo = Tabs.Raid:AddLeftGroupbox("Auto Raid", "zap")
-    RaidInfo:AddLabel("Active raid blocks farm and defense.", true)
-    RaidInfo:AddToggle("RaidOptimizedFarm", {
-        Text = "Optimized Raid Farm (HIGH RANGE)", Default = false,
-        Callback = function(value)
-            S.raidOptimizedFarm = value
-            if value then Library:Notify("Raid Optimized Farm - Enabled! Requires HIGH RANGE.") end
-        end,
-    })
-    RaidInfo:AddDivider()
+    for _, raidKey in ipairs(sortedRaidKeys) do raidEnabled[raidKey] = false RaidLoadouts[raidKey] = "Power" end
+    for _, defKey in ipairs(sortedDefenseKeys) do defenseEnabled[defKey] = false DefenseLoadouts[defKey] = "Power" end
 
-    for _, raidKey in ipairs(S.sortedRaidKeys) do
-        local raidData = S.RaidList[raidKey]
-        local toggleKey = "AutoRaid_"..raidKey
-        local waveOptKey = "RaidLeaveWave_"..raidKey
-        S.raidEnabled[raidKey] = false S.RaidLoadouts[raidKey] = "Power"
+    local maxRaidWave, maxDefWave = 50, 50
+    for _, k in ipairs(sortedRaidKeys) do maxRaidWave = math.max(maxRaidWave, (RaidList[k] or {}).TotalWaves or 0) end
+    for _, k in ipairs(sortedDefenseKeys) do maxDefWave = math.max(maxDefWave, (DefenseList[k] or {}).TotalWaves or 0) end
 
-        local worldLabel = aas_getWorldLabel(raidData.WorldId or 0)
-        local RaidGroup = Tabs.Raid:AddLeftGroupbox(raidData.Name.." ("..worldLabel..")", "shield")
 
-        local waveValues = { "0 (Never Leave)" }
-        for w = 1, raidData.TotalWaves do table.insert(waveValues, tostring(w)) end
-        RaidGroup:AddDropdown(waveOptKey, { Values=waveValues, Default=1, Text="Leave at Wave", Searchable=raidData.TotalWaves>20, Callback=function(_) end })
-        RaidGroup:AddToggle(toggleKey, {
-            Text = "Enable "..raidData.Name, Default = false,
-            Callback = function(value)
-                if value then
-                    if S.farmEnabled or aas_anyDefenseActive() then
-                        Toggles[toggleKey]:SetValue(false)
-                        Library:Notify("Blocked - Disable Farm/Defense first.")
-                        return
-                    end
-                    if S.activeRaidKey and S.activeRaidKey ~= raidKey then
-                        Toggles[toggleKey]:SetValue(false)
-                        Library:Notify("Blocked - Disable "..S.RaidList[S.activeRaidKey].Name.." first.")
-                        return
-                    end
-                    aas_disableOtherRaids(raidKey)
-                    S.raidEnabled[raidKey] = true S.activeRaidKey = raidKey
-                    if S.raidThread then task.cancel(S.raidThread) S.raidThread = nil end
-                    S.raidThread = task.spawn(function() aas_raidLoop(raidKey) end)
-                    Library:Notify(raidData.Name.." - Auto Raid started!")
-                else
-                    S.raidEnabled[raidKey] = false
-                    if S.activeRaidKey == raidKey then S.activeRaidKey = nil end
-                    if S.raidThread then task.cancel(S.raidThread) S.raidThread = nil end
-                end
-            end,
-        })
+    local RaidTab = Tabs.Raids:AddRightGroupbox({ Name = "Raid", Icon = "zap" })
+    local raidDisplay, raidToKey = {}, {}
+    for _, k in ipairs(sortedRaidKeys) do
+        aas_buildTick()
+        local rd = RaidList[k]
+        local disp = rd.Name.." ("..aas_getWorldLabel(rd.WorldId or 0)..")"
+        table.insert(raidDisplay, disp) raidToKey[disp] = k
     end
+    RaidTab:CreateDropdown({ Name = "Raid", Options = raidDisplay, Flag = "RaidSelect", Callback = function(_) end })
+    RaidTab:CreateToggle({ Name = "Optimized (HIGH RANGE)", Flag = "RaidOptimizedFarm", CurrentValue = false, Callback = function(value)
+            raidOptimizedFarm = value
+            if value then Window:Notify({ Title = "Euclidean", Content = "Raid Optimized Farm - Enabled! Requires HIGH RANGE.", Duration = 3, Type = "Info" }) end
+        end })
+    RaidTab:CreateSlider({ Name = "Leave At Wave", Flag = "RaidLeaveWave", Range = { 0, maxRaidWave }, Increment = 10 ^ -0, CurrentValue = 0 })
+    RaidTab:CreateToggle({ Name = "Enable Auto Raid", Flag = "AutoRaid", CurrentValue = false, Callback = function(value)
+            if value then
+                local disp = Options["RaidSelect"] and Options["RaidSelect"].Value or nil
+                local rk = disp and raidToKey[disp] or nil
+                if not rk then Toggles["AutoRaid"]:SetValue(false) Window:Notify({ Title = "Euclidean", Content = "Auto Raid - Select a raid first!", Duration = 3, Type = "Info" }) return end
+                if farmEnabled or aas_anyDefenseActive() then Toggles["AutoRaid"]:SetValue(false) Window:Notify({ Title = "Euclidean", Content = "Blocked - Disable Farm/Defense first.", Duration = 3, Type = "Info" }) return end
+                if activeRaidKey and activeRaidKey ~= rk then Toggles["AutoRaid"]:SetValue(false) Window:Notify({ Title = "Euclidean", Content = "Blocked - Disable "..((RaidList[activeRaidKey] or {}).Name or "?").." first.", Duration = 3, Type = "Info" }) return end
+                aas_equipLoadout(RaidLoadouts[rk] or "Power")
+                aas_enterPotionContext("Raid_"..rk)
+                raidEnabled[rk] = true activeRaidKey = rk
+                if raidThread then task.cancel(raidThread) raidThread = nil end
+                raidThread = task.spawn(function() aas_raidLoop(rk) end)
+                Window:Notify({ Title = "Euclidean", Content = "Auto Raid - Started!", Duration = 3, Type = "Info" })
+            else
+                raidEnabled[rk] = false
+                if activeRaidKey == rk then activeRaidKey = nil end
+                if raidThread then task.cancel(raidThread) raidThread = nil end
+            end
+        end })
+
+    local DefTab = Tabs.Raids:AddLeftGroupbox({ Name = "Defense", Icon = "shield" })
+    local defDisplay, defToKey = {}, {}
+    for _, k in ipairs(sortedDefenseKeys) do
+        aas_buildTick()
+        local dd = DefenseList[k]
+        local disp = dd.Name.." ("..aas_getWorldLabel(dd.WorldId or 0)..")"
+        table.insert(defDisplay, disp) defToKey[disp] = k
+    end
+    DefTab:CreateDropdown({ Name = "Defense", Options = defDisplay, Flag = "DefSelect", Callback = function(_) end })
+    DefTab:CreateSlider({ Name = "Leave At Wave", Flag = "DefLeaveWave", Range = { 0, maxDefWave }, Increment = 10 ^ -0, CurrentValue = 0 })
+    DefTab:CreateToggle({ Name = "Enable Auto Defense", Flag = "AutoDefense", CurrentValue = false, Callback = function(value)
+            if value then
+                local disp = Options["DefSelect"] and Options["DefSelect"].Value or nil
+                local dk = disp and defToKey[disp] or nil
+                if not dk then Toggles["AutoDefense"]:SetValue(false) Window:Notify({ Title = "Euclidean", Content = "Auto Defense - Select a defense first!", Duration = 3, Type = "Info" }) return end
+                if farmEnabled or aas_anyRaidActive() then Toggles["AutoDefense"]:SetValue(false) Window:Notify({ Title = "Euclidean", Content = "Blocked - Disable Farm/Raid first.", Duration = 3, Type = "Info" }) return end
+                if activeDefenseKey and activeDefenseKey ~= dk then Toggles["AutoDefense"]:SetValue(false) Window:Notify({ Title = "Euclidean", Content = "Blocked - Disable "..((DefenseList[activeDefenseKey] or {}).Name or "?").." first.", Duration = 3, Type = "Info" }) return end
+                aas_equipLoadout(DefenseLoadouts[dk] or "Power")
+                aas_enterPotionContext("Defense_"..dk)
+                defenseEnabled[dk] = true activeDefenseKey = dk
+                if defenseThread then task.cancel(defenseThread) defenseThread = nil end
+                defenseThread = task.spawn(function() aas_defenseLoop(dk) end)
+                Window:Notify({ Title = "Euclidean", Content = "Auto Defense - Started!", Duration = 3, Type = "Info" })
+            else
+                defenseEnabled[dk] = false
+                if activeDefenseKey == dk then activeDefenseKey = nil end
+                if defenseThread then task.cancel(defenseThread) defenseThread = nil end
+            end
+        end })
 end
 
 -- ══════════════════════════════════════════
---   DEFENSE SUBTAB (SOLID COLORS)
+--   DUNGEONS SUBTAB (TABBOX)
 -- ══════════════════════════════════════════
 
 do
-    local DefInfo = Tabs.Defense:AddLeftGroupbox("Auto Defense", "shield")
-    DefInfo:AddLabel("Active defense blocks farm and raids.", true)
-    DefInfo:AddDivider()
 
-    for _, defKey in ipairs(S.sortedDefenseKeys) do
-        local defData = S.DefenseList[defKey]
-        local toggleKey = "AutoDefense_"..defKey
-        local waveOptKey = "DefLeaveWave_"..defKey
-        S.defenseEnabled[defKey] = false S.DefenseLoadouts[defKey] = "Power"
-
-        local worldLabel = aas_getWorldLabel(defData.WorldId or 0)
-        local DefGroup = Tabs.Defense:AddLeftGroupbox(defData.Name.." ("..worldLabel..")", "zap")
-
-        local waveValues = { "0 (Never Leave)" }
-        for w = 1, defData.TotalWaves do table.insert(waveValues, tostring(w)) end
-        DefGroup:AddDropdown(waveOptKey, { Values=waveValues, Default=1, Text="Leave at Wave", Searchable=defData.TotalWaves>20, Callback=function(_) end })
-        DefGroup:AddToggle(toggleKey, {
-            Text = "Enable "..defData.Name, Default = false,
-            Callback = function(value)
-                if value then
-                    if S.farmEnabled or aas_anyRaidActive() then
-                        Toggles[toggleKey]:SetValue(false)
-                        Library:Notify("Blocked - Disable Farm/Raid first.")
-                        return
-                    end
-                    if S.activeDefenseKey and S.activeDefenseKey ~= defKey then
-                        Toggles[toggleKey]:SetValue(false)
-                        Library:Notify("Blocked - Disable "..S.DefenseList[S.activeDefenseKey].Name.." first.")
-                        return
-                    end
-                    aas_disableAllDefenses()
-                    S.defenseEnabled[defKey] = true S.activeDefenseKey = defKey
-                    if S.defenseThread then task.cancel(S.defenseThread) S.defenseThread = nil end
-                    S.defenseThread = task.spawn(function() aas_defenseLoop(defKey) end)
-                    Library:Notify(defData.Name.." - Auto Defense started!")
-                else
-                    S.defenseEnabled[defKey] = false
-                    if S.activeDefenseKey == defKey then S.activeDefenseKey = nil end
-                    if S.defenseThread then task.cancel(S.defenseThread) S.defenseThread = nil end
-                end
-            end,
-        })
-    end
-end
-
--- ══════════════════════════════════════════
---   DUNGEON SUBTAB (SOLID COLORS)
--- ══════════════════════════════════════════
-
-do
-    local DungeonInfo = Tabs.Dungeon:AddLeftGroupbox("Auto Dungeon", "door-open")
-    DungeonInfo:AddLabel("Dungeon pauses Farm/Raid/Defense temporarily.", true)
-    DungeonInfo:AddLabel("Priority vs Trial/Gate set in Priority subtab.", true)
-    DungeonInfo:AddDivider()
-
-    if #S.sortedDungeonKeys == 0 then
-        DungeonInfo:AddLabel("No dungeon data found.", true)
+    local DunTab = Tabs.Dungeons:AddRightGroupbox({ Name = "Dungeon", Icon = "door-open" })
+    if #sortedDungeonKeys == 0 then
+        DunTab:CreateLabel("No dungeon data found.")
     else
-        for _, dungeonKey in ipairs(S.sortedDungeonKeys) do
-            local dungeonData = S.DungeonList[dungeonKey]
+        for _, dungeonKey in ipairs(sortedDungeonKeys) do
+            aas_buildTick()
+            local dungeonData = DungeonList[dungeonKey]
             local toggleKey = "AutoDungeon_"..dungeonKey
             local roomOptKey = "DungeonLeaveRoom_"..dungeonKey
-            S.dungeonEnabled[dungeonKey] = false
+            dungeonEnabled[dungeonKey] = false
+            DungeonLoadouts[dungeonKey] = "Power"
 
             local worldLabel = aas_getWorldLabel(dungeonData.WorldId or 0)
-            local DungGroup = Tabs.Dungeon:AddLeftGroupbox(dungeonData.Name.." ("..worldLabel..")", "zap")
-
+            DunTab:CreateLabel(dungeonData.Name.." ("..worldLabel..")")
             local roomValues = { "0 (Never Leave)" }
             for r = 1, dungeonData.TotalRooms do table.insert(roomValues, tostring(r)) end
-            DungGroup:AddDropdown(roomOptKey, { Values=roomValues, Default=1, Text="Leave at Room", Searchable=dungeonData.TotalRooms>20, Callback=function(_) end })
-            DungGroup:AddToggle(toggleKey, {
-                Text = "Enable "..dungeonData.Name, Default = false,
-                Callback = function(value)
-                    S.dungeonEnabled[dungeonKey] = value
+            DunTab:CreateDropdown({ Name = "Leave at Room", Options = roomValues, CurrentOption = 1, Flag = roomOptKey, Callback = function(_) end })
+            DunTab:CreateToggle({ Name = "Enable "..dungeonData.Name, Flag = toggleKey, CurrentValue = false, Callback = function(value)
+                    dungeonEnabled[dungeonKey] = value
                     if value then
-                        if S.dungeonThreads[dungeonKey] then task.cancel(S.dungeonThreads[dungeonKey]) end
-                        S.dungeonThreads[dungeonKey] = task.spawn(function() aas_dungeonLoop(dungeonKey) end)
-                        Library:Notify(dungeonData.Name.." - Waiting for dungeon to spawn...")
+                        if dungeonThreads[dungeonKey] then task.cancel(dungeonThreads[dungeonKey]) end
+                        dungeonThreads[dungeonKey] = task.spawn(function() aas_dungeonLoop(dungeonKey) end)
+                        Window:Notify({ Title = "Euclidean", Content = dungeonData.Name.." - Waiting for dungeon to spawn...", Duration = 3, Type = "Info" })
                     else
-                        if S.dungeonThreads[dungeonKey] then task.cancel(S.dungeonThreads[dungeonKey]) S.dungeonThreads[dungeonKey] = nil end
-                        if S.activeDungeonKey == dungeonKey then
+                        if dungeonThreads[dungeonKey] then task.cancel(dungeonThreads[dungeonKey]) dungeonThreads[dungeonKey] = nil end
+                        if activeDungeonKey == dungeonKey then
                             if aas_dungeonArenaExists(dungeonKey) then aas_leaveDungeon() end
-                            S.activeDungeonKey = nil
+                            activeDungeonKey = nil
                         end
                     end
-                end,
-            })
+                end })
+            DunTab:CreateDivider()
         end
     end
-end
 
--- ══════════════════════════════════════════
---   RUSH SUBTAB (SOLID COLORS)
--- ══════════════════════════════════════════
-
-do
-    local RushInfo = Tabs.Rush:AddLeftGroupbox("Auto Boss Rush", "skull")
-    RushInfo:AddLabel("Auto farms Boss Rushes. Collects Sukuna Fingers.", true)
-    RushInfo:AddDivider()
-
-    if #S.sortedRushKeys == 0 then
-        RushInfo:AddLabel("No Boss Rush data found.", true)
-    else
-        for _, rushKey in ipairs(S.sortedRushKeys) do
-            local rushData = S.RushList[rushKey]
-            S.rushEnabled[rushKey] = false
-            local worldLabel = aas_getWorldLabel(rushData.WorldId or 11)
-            local RushGroup = Tabs.Rush:AddLeftGroupbox(rushData.Name.." ("..worldLabel..")", "zap")
-
-            RushGroup:AddDropdown("RushMode_"..rushKey, { Values=rushData.Modes, Default=1, Text="Select Mode", Callback=function(_) end })
-            RushGroup:AddInput("RushLeaveWave_"..rushKey, {
-                Default = "0", Numeric = true, Finished = true, ClearTextOnFocus = false,
-                Text = "Leave at Wave", Placeholder = "0 - 9999",
-                Callback = function(Value)
-                    local n = tonumber(Value)
-                    if not n then Options["RushLeaveWave_"..rushKey]:SetValue("0") return end
-                    Options["RushLeaveWave_"..rushKey]:SetValue(tostring(math.clamp(math.floor(n), 0, 9999)))
-                end,
-            })
-            RushGroup:AddToggle("AutoRush_"..rushKey, {
-                Text = "Enable "..rushData.Name, Default = false,
-                Callback = function(value)
-                    S.rushEnabled[rushKey] = value
-                    if value then
-                        if S.farmEnabled then
-                            Toggles["AutoRush_"..rushKey]:SetValue(false)
-                            Library:Notify("Blocked - Disable Auto Farm first.")
-                            return
-                        end
-                        if S.activeRushKey and S.activeRushKey ~= rushKey then
-                            Toggles["AutoRush_"..rushKey]:SetValue(false)
-                            Library:Notify("Blocked - Another Boss Rush is active.")
-                            return
-                        end
-                        S.activeRushKey = rushKey
-                        if S.rushThreads[rushKey] then task.cancel(S.rushThreads[rushKey]) end
-                        S.rushThreads[rushKey] = task.spawn(function() aas_rushLoop(rushKey) end)
-                        Library:Notify(rushData.Name.." - Auto Boss Rush started!")
-                    else
-                        if S.activeRushKey == rushKey then S.activeRushKey = nil end
-                        if S.rushThreads[rushKey] then task.cancel(S.rushThreads[rushKey]) S.rushThreads[rushKey] = nil end
-                    end
-                end,
-            })
-        end
-    end
-end
-
--- ══════════════════════════════════════════
---   TRIAL SUBTAB (SOLID COLORS)
--- ══════════════════════════════════════════
-
-do
-    local TrialInfo = Tabs.Trial:AddLeftGroupbox("Auto Trial", "clock")
-    TrialInfo:AddLabel("Trials pause Farm/Raid/Defense temporarily.", true)
-    TrialInfo:AddDivider()
-
-    for _, trialKey in ipairs(S.sortedTrialKeys) do
-        local trialData = S.TrialList[trialKey]
+    local TriTab = Tabs.Dungeons:AddLeftGroupbox({ Name = "Trial", Icon = "clock" })
+    for _, trialKey in ipairs(sortedTrialKeys) do
+        aas_buildTick()
+        local trialData = TrialList[trialKey]
         local toggleKey = "AutoTrial_"..trialKey
         local roomOptKey = "TrialLeaveRoom_"..trialKey
-        S.trialEnabled[trialKey] = false S.TrialLoadouts[trialKey] = "Power"
+        trialEnabled[trialKey] = false TrialLoadouts[trialKey] = "Power"
 
-        local TrialGroup = Tabs.Trial:AddLeftGroupbox(trialData.Name, "zap")
+        TriTab:CreateLabel(trialData.Name)
         local roomValues = { "0 (Never Leave)" }
         for r = 1, trialData.TotalRooms do table.insert(roomValues, tostring(r)) end
-        TrialGroup:AddDropdown(roomOptKey, { Values=roomValues, Default=1, Text="Leave at Room", Searchable=trialData.TotalRooms>20, Callback=function(_) end })
-        TrialGroup:AddToggle(toggleKey, {
-            Text = "Enable "..trialData.Name, Default = false,
-            Callback = function(value)
-                S.trialEnabled[trialKey] = value
+        TriTab:CreateDropdown({ Name = "Leave at Room", Options = roomValues, CurrentOption = 1, Flag = roomOptKey, Callback = function(_) end })
+        TriTab:CreateToggle({ Name = "Enable "..trialData.Name, Flag = toggleKey, CurrentValue = false, Callback = function(value)
+                trialEnabled[trialKey] = value
                 if value then
-                    if S.trialThreads[trialKey] then task.cancel(S.trialThreads[trialKey]) end
-                    S.trialThreads[trialKey] = task.spawn(function() aas_trialLoop(trialKey) end)
-                    Library:Notify(trialData.Name.." - Waiting for trial to spawn...")
+                    if trialThreads[trialKey] then task.cancel(trialThreads[trialKey]) end
+                    trialThreads[trialKey] = task.spawn(function() aas_trialLoop(trialKey) end)
+                    Window:Notify({ Title = "Euclidean", Content = trialData.Name.." - Waiting for trial to spawn...", Duration = 3, Type = "Info" })
                 else
-                    if S.trialThreads[trialKey] then task.cancel(S.trialThreads[trialKey]) S.trialThreads[trialKey] = nil end
+                    if trialThreads[trialKey] then task.cancel(trialThreads[trialKey]) trialThreads[trialKey] = nil end
                 end
-            end,
-        })
+            end })
+        TriTab:CreateDivider()
     end
 end
 
 -- ══════════════════════════════════════════
---   GATE SUBTAB (SOLID COLORS)
+--   BOSSES SUBTAB
 -- ══════════════════════════════════════════
 
 do
-    local GateInfo = Tabs.Gate:AddLeftGroupbox("Auto Gate", "shield")
-    GateInfo:AddLabel("Gate pauses Farm/Raid/Defense temporarily.", true)
-    GateInfo:AddDivider()
+    for _, rushKey in ipairs(sortedRushKeys) do rushEnabled[rushKey] = false RushLoadouts[rushKey] = "Power" end
+    for _, bossId in ipairs(sortedSpawnBossKeys) do spawnBossEnabled[bossId] = false end
 
-    if S.GateData then
-        GateInfo:AddDropdown("GateRankSelect", {
-            Values = S.GateRanks, Multi = true, Default = nil,
-            Text = "Select Gate Ranks to Farm", Callback = function(_) end,
-        })
-        for _, rank in ipairs(S.GateRanks) do
-            local waveValues = { "0 (Never Leave)" }
-            for w = 1, (S.GateData.TotalWaves or 50) do table.insert(waveValues, tostring(w)) end
-            GateInfo:AddDropdown("GateLeaveWave_"..rank, {
-                Values = waveValues, Default = 1, Text = "Leave at Wave (Rank "..rank..")",
-                Searchable = (S.GateData.TotalWaves or 50) > 20, Callback = function(_) end,
-            })
+    local RushBox = Tabs.Bosses:AddLeftGroupbox({ Name = "Boss Rush", Icon = "skull" })
+    local rushDisplay, rushToKey, modeUnion, modeSeen = {}, {}, {}, {}
+    for _, k in ipairs(sortedRushKeys) do
+        aas_buildTick()
+        local rd = RushList[k]
+        local disp = rd.Name.." ("..aas_getWorldLabel(rd.WorldId or 11)..")"
+        table.insert(rushDisplay, disp) rushToKey[disp] = k
+        for _, m in ipairs(rd.Modes or {}) do
+            if not modeSeen[m] then modeSeen[m] = true table.insert(modeUnion, m) end
         end
-        GateInfo:AddDivider()
-        GateInfo:AddToggle("GateOptimizedFarm", {
-            Text = "Optimized Middle Farm (HIGH RANGE)", Default = false,
-            Callback = function(value)
-                S.gateOptimizedFarm = value
-                if value then Library:Notify("Gate Optimized Farm - Enabled! Requires HIGH RANGE.") end
-            end,
-        })
-        GateInfo:AddDivider()
-        GateInfo:AddToggle("AutoGateEnabled", {
-            Text = "Enable Auto Gate", Default = false,
-            Callback = function(value)
-                S.gateEnabled = value
-                if value then
-                    if S.gateThread then task.cancel(S.gateThread) S.gateThread = nil end
-                    S.gateThread = task.spawn(aas_gateLoop)
-                    Library:Notify("Auto Gate - Monitoring World 5...")
-                else
-                    if S.gateThread then task.cancel(S.gateThread) S.gateThread = nil end
-                    S.gateSuppressedByPriority = false
-                end
-            end,
-        })
-    else GateInfo:AddLabel("No gate data found.", true) end
-end
-
--- ══════════════════════════════════════════
---   PRIORITY SUBTAB (SOLID COLORS)
--- ══════════════════════════════════════════
-
-do
-    local PriorityInfo = Tabs.Priority:AddLeftGroupbox("Priority System", "triangle-alert")
-    PriorityInfo:AddLabel("When Trial, Gate, OR Dungeon spawn simultaneously,\nthe highest priority one runs. Others are suppressed.", true)
-    PriorityInfo:AddDivider()
-    PriorityInfo:AddDropdown("PrioritySlot1", { Values={"Trial","Gate","Dungeon"}, Default=1, Text="Priority #1 (Highest)", Callback=function(val) S.priorityOrder[1]=val end })
-    PriorityInfo:AddDropdown("PrioritySlot2", { Values={"Trial","Gate","Dungeon"}, Default=2, Text="Priority #2 (Medium)",  Callback=function(val) S.priorityOrder[2]=val end })
-    PriorityInfo:AddDropdown("PrioritySlot3", { Values={"Trial","Gate","Dungeon"}, Default=3, Text="Priority #3 (Lowest)",  Callback=function(val) S.priorityOrder[3]=val end })
-end
-
--- ══════════════════════════════════════════
---   LOADOUTS SUBTAB (SOLID COLORS)
--- ══════════════════════════════════════════
-
-do
-    local LoadoutGroup = Tabs.Loadouts:AddLeftGroupbox("Activity Loadouts", "layers-2")
-    LoadoutGroup:AddDropdown("LoadoutFarm", { Values={"Power","Yen","Damage","XP","Drop","Luck"}, Default=1, Text="Farm Loadout", Callback=function(v) S.LoadoutAssignments.Farm=v end })
-    LoadoutGroup:AddDivider()
-    LoadoutGroup:AddLabel("Per-Gate-Rank Loadouts:", true)
-    for _, rank in ipairs(S.GateRanks) do
-        LoadoutGroup:AddDropdown("LoadoutGateRank_"..rank, { Values={"Power","Yen","Damage","XP","Drop","Luck"}, Default=1, Text="Gate Rank "..rank.." Loadout", Callback=function(_) end })
     end
-    LoadoutGroup:AddDivider()
-    LoadoutGroup:AddLabel("Per-Raid Loadouts:", true)
-    for _, raidKey in ipairs(S.sortedRaidKeys) do
-        local raidData = S.RaidList[raidKey]
-        S.RaidLoadouts[raidKey] = "Power"
-        LoadoutGroup:AddDropdown("LoadoutRaid_"..raidKey, { Values={"Power","Yen","Damage","XP","Drop","Luck"}, Default=1, Text=raidData.Name.." Loadout", Callback=function(v) S.RaidLoadouts[raidKey]=v end })
-    end
-
-    local LoadoutRight = Tabs.Loadouts:AddRightGroupbox("More Loadouts", "layers-2")
-    LoadoutRight:AddLabel("Per-Defense Loadouts:", true)
-    for _, defKey in ipairs(S.sortedDefenseKeys) do
-        local defData = S.DefenseList[defKey]
-        S.DefenseLoadouts[defKey] = "Power"
-        LoadoutRight:AddDropdown("LoadoutDef_"..defKey, { Values={"Power","Yen","Damage","XP","Drop","Luck"}, Default=1, Text=defData.Name.." Loadout", Callback=function(v) S.DefenseLoadouts[defKey]=v end })
-    end
-    LoadoutRight:AddDivider()
-    LoadoutRight:AddLabel("Per-Trial Loadouts:", true)
-    for _, trialKey in ipairs(S.sortedTrialKeys) do
-        local trialData = S.TrialList[trialKey]
-        S.TrialLoadouts[trialKey] = "Power"
-        LoadoutRight:AddDropdown("LoadoutTrial_"..trialKey, { Values={"Power","Yen","Damage","XP","Drop","Luck"}, Default=1, Text=trialData.Name.." Loadout", Callback=function(v) S.TrialLoadouts[trialKey]=v end })
-    end
-    LoadoutRight:AddDivider()
-    LoadoutRight:AddLabel("Per-Dungeon Loadouts:", true)
-    for _, dungeonKey in ipairs(S.sortedDungeonKeys) do
-        local dungeonData = S.DungeonList[dungeonKey]
-        S.DungeonLoadouts[dungeonKey] = "Power"
-        LoadoutRight:AddDropdown("LoadoutDungeon_"..dungeonKey, { Values={"Power","Yen","Damage","XP","Drop","Luck"}, Default=1, Text=dungeonData.Name.." Loadout", Callback=function(v) S.DungeonLoadouts[dungeonKey]=v end })
-    end
-    LoadoutRight:AddDivider()
-    LoadoutRight:AddLabel("Per-Boss Rush Loadouts:", true)
-    for _, rushKey in ipairs(S.sortedRushKeys) do
-        local rushData = S.RushList[rushKey]
-        S.RushLoadouts[rushKey] = "Power"
-        LoadoutRight:AddDropdown("LoadoutRush_"..rushKey, { Values={"Power","Yen","Damage","XP","Drop","Luck"}, Default=1, Text=rushData.Name.." Loadout", Callback=function(v) S.RushLoadouts[rushKey]=v end })
-    end
-end
-
--- ══════════════════════════════════════════
---   POTIONS SUBTAB (SOLID COLORS)
--- ══════════════════════════════════════════
-
-do
-    local aas_allPotionIds = {}
-    for _, pid in ipairs(aas_sortedPotionKeys) do table.insert(aas_allPotionIds, pid) end
-
-    local PotionInfo = Tabs.Potions:AddLeftGroupbox("Potion Context", "flask-conical")
-    PotionInfo:AddLabel("Automatically pauses/unpauses potions based on current activity.", true)
-    PotionInfo:AddDivider()
-    local potionStatusObj = PotionInfo:AddLabel("Context: Idle", false, "PotionStatusLabel")
-    S.potionStatusLabelRef = Options["PotionStatusLabel"] or potionStatusObj
-    PotionInfo:AddDivider()
-    PotionInfo:AddToggle("PotionContextEnabled", {
-        Text = "Enable Potion Context", Default = false,
-        Callback = function(value)
-            S.potionContextEnabled = value
-            Library:Notify("Potion Context - "..(value and "Enabled!" or "Disabled"))
-        end,
-    })
-    PotionInfo:AddDivider()
-    if #aas_allPotionIds > 0 then
-        PotionInfo:AddDropdown("PotionAutoUseSelect", {
-            Values = aas_allPotionIds, Multi = true, Default = nil,
-            Text = "Select Potions to Auto Use", Searchable = #aas_allPotionIds > 8, Callback = function(_) end,
-        })
-    end
-    PotionInfo:AddToggle("PotionAutoUseEnabled", {
-        Text = "Auto Use Potion (every 30s)", Default = false,
-        Callback = function(value)
-            S.potionAutoUseEnabled = value
-            if value then
-                if S.potionAutoUseThread then task.cancel(S.potionAutoUseThread) end
-                S.potionAutoUseThread = task.spawn(aas_autoUsePotionLoop)
-                Library:Notify("Auto Use Potion - Started!")
-            else
-                if S.potionAutoUseThread then task.cancel(S.potionAutoUseThread) S.potionAutoUseThread = nil end
+    table.sort(modeUnion)
+    if #modeUnion == 0 then modeUnion = { "V1" } end
+    RushBox:CreateDropdown({ Name = "Boss Rush", Options = rushDisplay, Flag = "RushSelect", Callback = function(val)
+            local rk = val and rushToKey[val] or nil
+            if rk and Options["RushMode"] then
+                local modes = (RushList[rk] or {}).Modes or {}
+                if #modes > 0 then pcall(function() Options["RushMode"]:SetValues(modes) Options["RushMode"]:SetValue(modes[1]) end) end
             end
-        end,
-    })
+        end })
+    RushBox:CreateDropdown({ Name = "Mode", Options = modeUnion, CurrentOption = 1, Flag = "RushMode", Callback = function(_) end })
+    RushBox:CreateInput({ Name = "Leave at Wave", CurrentValue = "0", PlaceholderText = "0 - 9999", Numeric = true, Flag = "RushLeaveWave", Callback = function(Value)
+            local n = tonumber(Value)
+            if not n then Options["RushLeaveWave"]:SetValue("0") return end
+            Options["RushLeaveWave"]:SetValue(tostring(math.clamp(math.floor(n), 0, 9999)))
+        end })
+    RushBox:CreateToggle({ Name = "Enable Auto Boss Rush", Flag = "AutoRush", CurrentValue = false, Callback = function(value)
+            if value then
+                local disp = Options["RushSelect"] and Options["RushSelect"].Value or nil
+                local rk = disp and rushToKey[disp] or nil
+                if not rk then Toggles["AutoRush"]:SetValue(false) Window:Notify({ Title = "Euclidean", Content = "Auto Boss Rush - Select a rush first!", Duration = 3, Type = "Info" }) return end
+                if farmEnabled then Toggles["AutoRush"]:SetValue(false) Window:Notify({ Title = "Euclidean", Content = "Blocked - Disable Auto Farm first.", Duration = 3, Type = "Info" }) return end
+                if activeRushKey and activeRushKey ~= rk then Toggles["AutoRush"]:SetValue(false) Window:Notify({ Title = "Euclidean", Content = "Blocked - Another Boss Rush is active.", Duration = 3, Type = "Info" }) return end
+                aas_equipLoadout(RushLoadouts[rk] or "Power")
+                aas_enterPotionContext("Rush_"..rk)
+                rushEnabled[rk] = true activeRushKey = rk
+                if rushThreads[rk] then task.cancel(rushThreads[rk]) end
+                rushThreads[rk] = task.spawn(function() aas_rushLoop(rk) end)
+                Window:Notify({ Title = "Euclidean", Content = "Auto Boss Rush - Started!", Duration = 3, Type = "Info" })
+            else
+                rushEnabled[rk] = false
+                if activeRushKey == rk then activeRushKey = nil end
+                if rushThreads[rk] then task.cancel(rushThreads[rk]) rushThreads[rk] = nil end
+            end
+        end })
 
-    local PotionCtxGroup = Tabs.Potions:AddRightGroupbox("Per-Activity Potion Selection", "settings")
-    PotionCtxGroup:AddLabel("Select which potions stay ACTIVE per activity.\nUnselected potions will be paused.", true)
-    PotionCtxGroup:AddDivider()
+    local GateBox = Tabs.Bosses:AddRightGroupbox({ Name = "Gate", Icon = "shield" })
+    if GateData then
+        GateBox:CreateDropdown({ Name = "Select Gate Ranks to Farm", Options = GateRanks, MultipleOptions = true, Flag = "GateRankSelect", Callback = function(_) end })
+        for _, rank in ipairs(GateRanks) do
+            aas_buildTick()
+            local waveValues = { "0 (Never Leave)" }
+            for w = 1, (GateData.TotalWaves or 50) do table.insert(waveValues, tostring(w)) end
+            GateBox:CreateDropdown({ Name = "Leave at Wave (Rank "..rank..")", Options = waveValues, CurrentOption = 1, Flag = "GateLeaveWave_"..rank, Callback = function(_) end })
+        end
+        GateBox:CreateDivider()
+        GateBox:CreateToggle({ Name = "Optimized Middle Farm (HIGH RANGE)", Flag = "GateOptimizedFarm", CurrentValue = false, Callback = function(value)
+                gateOptimizedFarm = value
+                if value then Window:Notify({ Title = "Euclidean", Content = "Gate Optimized Farm - Enabled! Requires HIGH RANGE.", Duration = 3, Type = "Info" }) end
+            end })
+        GateBox:CreateDivider()
+        GateBox:CreateToggle({ Name = "Enable Auto Gate", Flag = "AutoGateEnabled", CurrentValue = false, Callback = function(value)
+                gateEnabled = value
+                if value then
+                    if gateThread then task.cancel(gateThread) gateThread = nil end
+                    gateThread = task.spawn(aas_gateLoop)
+                    Window:Notify({ Title = "Euclidean", Content = "Auto Gate - Monitoring World 5...", Duration = 3, Type = "Info" })
+                else
+                    if gateThread then task.cancel(gateThread) gateThread = nil end
+                    gateSuppressedByPriority = false
+                end
+            end })
+    else GateBox:CreateLabel("No gate data found.") end
 
-    function aas_buildPotionContextDropdown(group, contextKey, label)
-        if #aas_allPotionIds == 0 then return end
-        group:AddDropdown("PotionCtx_"..contextKey, {
-            Values = aas_allPotionIds, Multi = true, Default = nil,
-            Text = label, Searchable = #aas_allPotionIds > 8, Callback = function(_) end
-        })
+    local BossBox = Tabs.Bosses:AddRightGroupbox({ Name = "Spawn Boss", Icon = "crown" })
+    local bossDisplay, bossToKey = {}, {}
+    for _, bossId in ipairs(sortedSpawnBossKeys) do
+        aas_buildTick()
+        local bd = SpawnBossList[bossId]
+        local disp = bd.Name.." ("..aas_getWorldLabel(bd.WorldId)..")"
+        table.insert(bossDisplay, disp) bossToKey[disp] = bossId
     end
-
-    aas_buildPotionContextDropdown(PotionCtxGroup, "Farm", "Farm Potions")
-    PotionCtxGroup:AddDivider()
-    for _, rank in ipairs(S.GateRanks) do aas_buildPotionContextDropdown(PotionCtxGroup, "Gate_"..rank, "Gate Rank "..rank.." Potions") end
-    PotionCtxGroup:AddDivider()
-    for _, raidKey in ipairs(S.sortedRaidKeys) do aas_buildPotionContextDropdown(PotionCtxGroup, "Raid_"..raidKey, S.RaidList[raidKey].Name.." Potions") end
-    PotionCtxGroup:AddDivider()
-    for _, defKey in ipairs(S.sortedDefenseKeys) do aas_buildPotionContextDropdown(PotionCtxGroup, "Defense_"..defKey, S.DefenseList[defKey].Name.." Potions") end
-    PotionCtxGroup:AddDivider()
-    for _, trialKey in ipairs(S.sortedTrialKeys) do aas_buildPotionContextDropdown(PotionCtxGroup, "Trial_"..trialKey, S.TrialList[trialKey].Name.." Potions") end
-    PotionCtxGroup:AddDivider()
-    for _, dungeonKey in ipairs(S.sortedDungeonKeys) do aas_buildPotionContextDropdown(PotionCtxGroup, "Dungeon_"..dungeonKey, S.DungeonList[dungeonKey].Name.." Potions") end
-    PotionCtxGroup:AddDivider()
-    for _, rushKey in ipairs(S.sortedRushKeys) do aas_buildPotionContextDropdown(PotionCtxGroup, "Rush_"..rushKey, S.RushList[rushKey].Name.." Potions") end
+    BossBox:CreateDropdown({ Name = "Boss", Options = bossDisplay, Flag = "SpawnBossSelect", Callback = function(_) end })
+    BossBox:CreateToggle({ Name = "Enable Auto Spawn Boss", Flag = "AutoSpawnBoss", CurrentValue = false, Callback = function(value)
+            if value then
+                local disp = Options["SpawnBossSelect"] and Options["SpawnBossSelect"].Value or nil
+                local bossId = disp and bossToKey[disp] or nil
+                if not bossId then Toggles["AutoSpawnBoss"]:SetValue(false) Window:Notify({ Title = "Euclidean", Content = "Auto Spawn Boss - Select a boss first!", Duration = 3, Type = "Info" }) return end
+                if farmEnabled or aas_anyRaidActive() or aas_anyDefenseActive() or aas_anyRushActive() then
+                    Toggles["AutoSpawnBoss"]:SetValue(false)
+                    Window:Notify({ Title = "Euclidean", Content = "Blocked - Disable Farm/Raid/Defense/Rush first.", Duration = 3, Type = "Info" })
+                    return
+                end
+                spawnBossEnabled[bossId] = true
+                aas_equipLoadout(LoadoutAssignments.Farm or "Power")
+                aas_enterPotionContext("Farm")
+                if spawnBossThreads[bossId] then task.cancel(spawnBossThreads[bossId]) end
+                spawnBossThreads[bossId] = task.spawn(function() aas_spawnBossLoop(bossId) end)
+                Window:Notify({ Title = "Euclidean", Content = "Auto Spawn Boss - Started!", Duration = 3, Type = "Info" })
+            else
+                spawnBossEnabled[bossId] = false
+                if spawnBossThreads[bossId] then
+                    task.cancel(spawnBossThreads[bossId])
+                    spawnBossThreads[bossId] = nil
+                end
+            end
+        end })
 end
 
 -- ══════════════════════════════════════════
---   GACHA TAB (SOLID COLORS)
+--   SETUP SUBTAB (TABBOXES)
+-- ══════════════════════════════════════════
+
+do
+    local PriorityBox = Tabs.Setup:AddLeftGroupbox({ Name = "Priority", Icon = "triangle-alert" })
+    PriorityBox:CreateDropdown({ Name = "Priority #1 (Highest)", Options = {"Trial","Gate","Dungeon"}, CurrentOption = 1, Flag = "PrioritySlot1", Callback = function(val) priorityOrder[1]=val end })
+    PriorityBox:CreateDropdown({ Name = "Priority #2 (Medium)", Options = {"Trial","Gate","Dungeon"}, CurrentOption = 2, Flag = "PrioritySlot2", Callback = function(val) priorityOrder[2]=val end })
+    PriorityBox:CreateDropdown({ Name = "Priority #3 (Lowest)", Options = {"Trial","Gate","Dungeon"}, CurrentOption = 3, Flag = "PrioritySlot3", Callback = function(val) priorityOrder[3]=val end })
+
+
+
+    local FarmTab = Tabs.Setup:AddLeftGroupbox({ Name = "Farm", Icon = "sprout" })
+    FarmTab:CreateDropdown({ Name = "Farm Loadout", Options = {"Power","Yen","Damage","XP","Drop","Luck"}, CurrentOption = 1, Flag = "LoadoutFarm", Callback = function(v) LoadoutAssignments.Farm=v end })
+
+    local GateTab = Tabs.Setup:AddLeftGroupbox({ Name = "Gate", Icon = "shield" })
+    for _, rank in ipairs(GateRanks) do
+        aas_buildTick()
+        GateTab:CreateDropdown({ Name = "Rank "..rank, Options = {"Power","Yen","Damage","XP","Drop","Luck"}, CurrentOption = 1, Flag = "LoadoutGateRank_"..rank, Callback = function(_) end })
+    end
+
+
+
+    local RaidLTab = Tabs.Setup:AddLeftGroupbox({ Name = "Raid", Icon = "zap" })
+    for _, raidKey in ipairs(sortedRaidKeys) do
+        aas_buildTick()
+        local raidData = RaidList[raidKey]
+        RaidLoadouts[raidKey] = "Power"
+        RaidLTab:CreateDropdown({ Name = raidData.Name, Options = {"Power","Yen","Damage","XP","Drop","Luck"}, CurrentOption = 1, Flag = "LoadoutRaid_"..raidKey, Callback = function(v) RaidLoadouts[raidKey]=v end })
+    end
+
+    local DefLTab = Tabs.Setup:AddLeftGroupbox({ Name = "Defense", Icon = "shield" })
+    for _, defKey in ipairs(sortedDefenseKeys) do
+        aas_buildTick()
+        local defData = DefenseList[defKey]
+        DefenseLoadouts[defKey] = "Power"
+        DefLTab:CreateDropdown({ Name = defData.Name, Options = {"Power","Yen","Damage","XP","Drop","Luck"}, CurrentOption = 1, Flag = "LoadoutDef_"..defKey, Callback = function(v) DefenseLoadouts[defKey]=v end })
+    end
+
+
+    local TrialLTab = Tabs.Setup:AddLeftGroupbox({ Name = "Trial", Icon = "clock" })
+    for _, trialKey in ipairs(sortedTrialKeys) do
+        aas_buildTick()
+        local trialData = TrialList[trialKey]
+        TrialLoadouts[trialKey] = "Power"
+        TrialLTab:CreateDropdown({ Name = trialData.Name, Options = {"Power","Yen","Damage","XP","Drop","Luck"}, CurrentOption = 1, Flag = "LoadoutTrial_"..trialKey, Callback = function(v) TrialLoadouts[trialKey]=v end })
+    end
+
+    local DunLTab = Tabs.Setup:AddLeftGroupbox({ Name = "Dungeon & Rush", Icon = "door-open" })
+    for _, dungeonKey in ipairs(sortedDungeonKeys) do
+        aas_buildTick()
+        local dungeonData = DungeonList[dungeonKey]
+        DungeonLoadouts[dungeonKey] = "Power"
+        DunLTab:CreateDropdown({ Name = dungeonData.Name, Options = {"Power","Yen","Damage","XP","Drop","Luck"}, CurrentOption = 1, Flag = "LoadoutDungeon_"..dungeonKey, Callback = function(v) DungeonLoadouts[dungeonKey]=v end })
+    end
+    for _, rushKey in ipairs(sortedRushKeys) do
+        aas_buildTick()
+        local rushData = RushList[rushKey]
+        RushLoadouts[rushKey] = "Power"
+        DunLTab:CreateDropdown({ Name = rushData.Name, Options = {"Power","Yen","Damage","XP","Drop","Luck"}, CurrentOption = 1, Flag = "LoadoutRush_"..rushKey, Callback = function(v) RushLoadouts[rushKey]=v end })
+    end
+
+    local PotionBox = Tabs.Setup:AddRightGroupbox({ Name = "Potions", Icon = "flask-conical" })
+    local potionStatusObj = PotionBox:CreateLabel("Context: Idle")
+    potionStatusLabelRef = Options["PotionStatusLabel"] or potionStatusObj
+    PotionBox:CreateToggle({ Name = "Enable Potion Context", Flag = "PotionContextEnabled", CurrentValue = false, Callback = function(value)
+            potionContextEnabled = value
+            Window:Notify({ Title = "Euclidean", Content = "Potion Context - "..(value and "Enabled!" or "Disabled"), Duration = 3, Type = "Info" })
+        end })
+    PotionBox:CreateDropdown({ Name = "Select Potions to Auto Use", Options = aas_sortedPotionKeys, MultipleOptions = true, Flag = "PotionAutoUseSelect", Callback = function(_) end })
+    PotionBox:CreateToggle({ Name = "Auto Use Potion (every 30s)", Flag = "PotionAutoUseEnabled", CurrentValue = false, Callback = function(value)
+            potionAutoUseEnabled = value
+            if value then
+                if potionAutoUseThread then task.cancel(potionAutoUseThread) end
+                potionAutoUseThread = task.spawn(aas_autoUsePotionLoop)
+                Window:Notify({ Title = "Euclidean", Content = "Auto Use Potion - Started!", Duration = 3, Type = "Info" })
+            else
+                if potionAutoUseThread then task.cancel(potionAutoUseThread) potionAutoUseThread = nil end
+            end
+        end })
+
+
+    local function aas_ctxTabDropdown(tab, contextKey, label)
+        if #aas_sortedPotionKeys == 0 then return end
+        tab:CreateDropdown({ Name = label, Options = aas_sortedPotionKeys, MultipleOptions = true, Flag = "PotionCtx_"..contextKey, Callback = function(_) end })
+    end
+
+    local PotFarmTab = Tabs.Setup:AddRightGroupbox({ Name = "Farm", Icon = "sprout" })
+    aas_ctxTabDropdown(PotFarmTab, "Farm", "Farm Potions")
+    for _, rank in ipairs(GateRanks) do aas_buildTick() aas_ctxTabDropdown(PotFarmTab, "Gate_"..rank, "Gate Rank "..rank) end
+
+
+    local PotRaidTab = Tabs.Setup:AddRightGroupbox({ Name = "Raids", Icon = "zap" })
+    for _, raidKey in ipairs(sortedRaidKeys) do aas_buildTick() aas_ctxTabDropdown(PotRaidTab, "Raid_"..raidKey, RaidList[raidKey].Name) end
+
+    local PotOtherTab = Tabs.Setup:AddRightGroupbox({ Name = "Other", Icon = "layers" })
+    for _, defKey in ipairs(sortedDefenseKeys) do aas_buildTick() aas_ctxTabDropdown(PotOtherTab, "Defense_"..defKey, DefenseList[defKey].Name) end
+    for _, trialKey in ipairs(sortedTrialKeys) do aas_buildTick() aas_ctxTabDropdown(PotOtherTab, "Trial_"..trialKey, TrialList[trialKey].Name) end
+    for _, dungeonKey in ipairs(sortedDungeonKeys) do aas_buildTick() aas_ctxTabDropdown(PotOtherTab, "Dungeon_"..dungeonKey, DungeonList[dungeonKey].Name) end
+    for _, rushKey in ipairs(sortedRushKeys) do aas_buildTick() aas_ctxTabDropdown(PotOtherTab, "Rush_"..rushKey, RushList[rushKey].Name) end
+end
+
+-- ══════════════════════════════════════════
+--   GACHA SUBTAB
 -- ══════════════════════════════════════════
 
 do
     task.spawn(function() task.wait(2) pcall(aas_syncAllPlayerData) end)
 
-    local GachaInfo = Tabs.Gacha:AddLeftGroupbox("Auto Gacha", "sparkles")
-    GachaInfo:AddLabel("Multiple gachas can run simultaneously. Stops at Divine.", true)
-    GachaInfo:AddDivider()
-
-    for _, gachaKey in ipairs(S.sortedGachaKeys) do
-        local gachaData = S.GachaList[gachaKey]
+    local GachaBox = Tabs.GachaTab:AddLeftGroupbox({ Name = "Gachas", Icon = "sparkles" })
+    for _, gachaKey in ipairs(sortedGachaKeys) do
+        aas_buildTick()
+        local gachaData = GachaList[gachaKey]
         local toggleKey = "AutoGacha_"..gachaKey
-        S.gachaEnabled[gachaKey] = false
+        gachaEnabled[gachaKey] = false
         local worldLabel = aas_getWorldLabel(gachaData.WorldId)
-        local GachaGroup = Tabs.Gacha:AddLeftGroupbox(gachaData.Name.." ("..worldLabel..")", "star")
-        local rarityLabelObj = GachaGroup:AddLabel("Current: Unknown", false, "GachaRarityLabel_"..gachaKey)
-        S.gachaLabelRefs[gachaKey] = Options["GachaRarityLabel_"..gachaKey] or rarityLabelObj
-        GachaGroup:AddToggle(toggleKey, {
-            Text = "Enable Auto Roll", Default = false,
-            Callback = function(value)
-                S.gachaEnabled[gachaKey] = value
+        GachaBox:CreateLabel(gachaData.Name.." ("..worldLabel..")")
+        local rarityLabelObj = GachaBox:CreateLabel("Current: Unknown")
+        gachaLabelRefs[gachaKey] = Options["GachaRarityLabel_"..gachaKey] or rarityLabelObj
+        GachaBox:CreateToggle({ Name = "Enable Auto Roll", Flag = toggleKey, CurrentValue = false, Callback = function(value)
+                gachaEnabled[gachaKey] = value
                 if value then
-                    if S.gachaThreads[gachaKey] then task.cancel(S.gachaThreads[gachaKey]) end
-                    S.gachaThreads[gachaKey] = task.spawn(function() aas_gachaLoop(gachaKey) end)
-                    Library:Notify(gachaData.Name.." - Auto Gacha started!")
+                    if gachaThreads[gachaKey] then task.cancel(gachaThreads[gachaKey]) end
+                    gachaThreads[gachaKey] = task.spawn(function() aas_gachaLoop(gachaKey) end)
+                    Window:Notify({ Title = "Euclidean", Content = gachaData.Name.." - Auto Gacha started!", Duration = 3, Type = "Info" })
                 else
-                    if S.gachaThreads[gachaKey] then task.cancel(S.gachaThreads[gachaKey]) S.gachaThreads[gachaKey] = nil end
+                    if gachaThreads[gachaKey] then task.cancel(gachaThreads[gachaKey]) gachaThreads[gachaKey] = nil end
                 end
-            end,
-        })
+            end })
+        GachaBox:CreateDivider()
     end
+end
 
-    local SwordGroup = Tabs.Gacha:AddRightGroupbox("Auto Swords", "sword")
-    SwordGroup:AddToggle("AutoFuseAll", {
-        Text = "Auto Fuse All Swords", Default = false,
-        Callback = function(value)
-            S.autoFuseAllEnabled = value
-            if value then if S.fuseAllThread then task.cancel(S.fuseAllThread) end S.fuseAllThread = task.spawn(aas_fuseAllLoop) Library:Notify("Auto Fuse All - Enabled!")
-            else if S.fuseAllThread then task.cancel(S.fuseAllThread) S.fuseAllThread = nil end end
-        end,
-    })
-    SwordGroup:AddToggle("AutoSword_World0", {
-        Text = "Auto Roll Sword (World0)", Default = false,
-        Callback = function(value)
-            S.SwordWorld0Enabled = value
-            if value then if S.SwordWorld0Thread then task.cancel(S.SwordWorld0Thread) end S.SwordWorld0Thread = task.spawn(aas_swordWorld0Loop)
-            else if S.SwordWorld0Thread then task.cancel(S.SwordWorld0Thread) S.SwordWorld0Thread = nil end end
-        end,
-    })
-    SwordGroup:AddToggle("AutoSword_World8", {
-        Text = "Auto Roll Summer Sword (World8)", Default = false,
-        Callback = function(value)
-            S.SwordWorld8Enabled = value
-            if value then if S.SwordWorld8Thread then task.cancel(S.SwordWorld8Thread) end S.SwordWorld8Thread = task.spawn(aas_swordWorld8Loop)
-            else if S.SwordWorld8Thread then task.cancel(S.SwordWorld8Thread) S.SwordWorld8Thread = nil end end
-        end,
-    })
+-- ══════════════════════════════════════════
+--   SWORDS SUBTAB (TABBOXES)
+-- ══════════════════════════════════════════
 
-    local PassiveGroup = Tabs.Gacha:AddRightGroupbox("Auto Player Passive", "shield")
-    local passiveLabelObj = PassiveGroup:AddLabel("Active: None", false, "PassiveActiveLabel")
-    S.passiveLabelRef = Options["PassiveActiveLabel"] or passiveLabelObj
-    PassiveGroup:AddToggle("AutoPassiveEnabled", {
-        Text = "Enable Auto Player Passive Roll", Default = false,
-        Callback = function(value)
-            S.passiveAutoEnabled = value
-            if value then if S.passiveThread then task.cancel(S.passiveThread) end S.passiveThread = task.spawn(aas_passiveLoop)
-            else if S.passiveThread then task.cancel(S.passiveThread) S.passiveThread = nil end end
-        end,
-    })
+do
+    local SwordBox = Tabs.Swords:AddLeftGroupbox({ Name = "Swords", Icon = "sword" })
+    SwordBox:CreateToggle({ Name = "Auto Fuse All Swords", Flag = "AutoFuseAll", CurrentValue = false, Callback = function(value)
+            autoFuseAllEnabled = value
+            if value then if fuseAllThread then task.cancel(fuseAllThread) end fuseAllThread = task.spawn(aas_fuseAllLoop) Window:Notify({ Title = "Euclidean", Content = "Auto Fuse All - Enabled!", Duration = 3, Type = "Info" })
+            else if fuseAllThread then task.cancel(fuseAllThread) fuseAllThread = nil end end
+        end })
+    SwordBox:CreateToggle({ Name = "Auto Roll Sword (World0)", Flag = "AutoSword_World0", CurrentValue = false, Callback = function(value)
+            SwordWorld0Enabled = value
+            if value then if SwordWorld0Thread then task.cancel(SwordWorld0Thread) end SwordWorld0Thread = task.spawn(aas_swordWorld0Loop)
+            else if SwordWorld0Thread then task.cancel(SwordWorld0Thread) SwordWorld0Thread = nil end end
+        end })
+    SwordBox:CreateToggle({ Name = "Auto Roll Summer Sword (World8)", Flag = "AutoSword_World8", CurrentValue = false, Callback = function(value)
+            SwordWorld8Enabled = value
+            if value then if SwordWorld8Thread then task.cancel(SwordWorld8Thread) end SwordWorld8Thread = task.spawn(aas_swordWorld8Loop)
+            else if SwordWorld8Thread then task.cancel(SwordWorld8Thread) SwordWorld8Thread = nil end end
+        end })
 
-    local TitanGroup = Tabs.Gacha:AddRightGroupbox("Auto Titan", "zap")
-    local titanLabelObj = TitanGroup:AddLabel("Active Titan: None", false, "TitanActiveLabel")
-    S.titanLabelRef = Options["TitanActiveLabel"] or titanLabelObj
-    TitanGroup:AddToggle("AutoTitanEnabled", {
-        Text = "Enable Auto Titan Roll", Default = false,
-        Callback = function(value)
-            S.titanAutoEnabled = value
-            if value then if S.titanThread then task.cancel(S.titanThread) end S.titanThread = task.spawn(aas_titanLoop)
-            else if S.titanThread then task.cancel(S.titanThread) S.titanThread = nil end end
-        end,
-    })
 
-    local SP1Group = Tabs.Gacha:AddRightGroupbox("Sword Passive (Sword 1)", "wind")
-    local sp1InfoObj = SP1Group:AddLabel("Sword 1: Loading...", false, "SwordPassive1InfoLabel")
-    S.sword1InfoLabelRef = Options["SwordPassive1InfoLabel"] or sp1InfoObj
-    local sp1BreathObj = SP1Group:AddLabel("Breathing: None", false, "SwordPassive1BreathLabel")
-    S.sword1BreathingLabelRef = Options["SwordPassive1BreathLabel"] or sp1BreathObj
-    SP1Group:AddDropdown("SwordPassive1StopRarities", { Values=S.SwordPassiveRarityOrder, Multi=true, Default=nil, Text="Stop at Rarity", Callback=function(_) end })
-    SP1Group:AddToggle("AutoSwordPassive1Enabled", {
-        Text = "Enable Auto Roll (Sword 1)", Default = false,
-        Callback = function(value)
-            S.swordPassive1Enabled = value
-            if value then if S.swordPassive1Thread then task.cancel(S.swordPassive1Thread) end S.swordPassive1Thread = task.spawn(aas_swordPassive1Loop)
-            else if S.swordPassive1Thread then task.cancel(S.swordPassive1Thread) S.swordPassive1Thread = nil end end
-        end,
-    })
+    local PlayerPassTab = Tabs.Swords:AddLeftGroupbox({ Name = "Player", Icon = "user" })
+    local passiveLabelObj = PlayerPassTab:CreateLabel("Active: None")
+    passiveLabelRef = Options["PassiveActiveLabel"] or passiveLabelObj
+    PlayerPassTab:CreateToggle({ Name = "Enable Auto Roll", Flag = "AutoPassiveEnabled", CurrentValue = false, Callback = function(value)
+            passiveAutoEnabled = value
+            if value then if passiveThread then task.cancel(passiveThread) end passiveThread = task.spawn(aas_passiveLoop)
+            else if passiveThread then task.cancel(passiveThread) passiveThread = nil end end
+        end })
 
-    local SP2Group = Tabs.Gacha:AddRightGroupbox("Sword Passive (Sword 2)", "wind")
-    local sp2InfoObj = SP2Group:AddLabel("Sword 2: Loading...", false, "SwordPassive2InfoLabel")
-    S.sword2InfoLabelRef = Options["SwordPassive2InfoLabel"] or sp2InfoObj
-    local sp2BreathObj = SP2Group:AddLabel("Breathing: None", false, "SwordPassive2BreathLabel")
-    S.sword2BreathingLabelRef = Options["SwordPassive2BreathLabel"] or sp2BreathObj
-    SP2Group:AddDropdown("SwordPassive2StopRarities", { Values=S.SwordPassiveRarityOrder, Multi=true, Default=nil, Text="Stop at Rarity", Callback=function(_) end })
-    SP2Group:AddToggle("AutoSwordPassive2Enabled", {
-        Text = "Enable Auto Roll (Sword 2)", Default = false,
-        Callback = function(value)
-            S.swordPassive2Enabled = value
-            if value then if S.swordPassive2Thread then task.cancel(S.swordPassive2Thread) end S.swordPassive2Thread = task.spawn(aas_swordPassive2Loop)
-            else if S.swordPassive2Thread then task.cancel(S.swordPassive2Thread) S.swordPassive2Thread = nil end end
-        end,
-    })
+    local TitanPassTab = Tabs.Swords:AddLeftGroupbox({ Name = "Titan", Icon = "shield-half" })
+    local titanLabelObj = TitanPassTab:CreateLabel("Active Titan: None")
+    titanLabelRef = Options["TitanActiveLabel"] or titanLabelObj
+    TitanPassTab:CreateToggle({ Name = "Enable Auto Roll", Flag = "AutoTitanEnabled", CurrentValue = false, Callback = function(value)
+            titanAutoEnabled = value
+            if value then if titanThread then task.cancel(titanThread) end titanThread = task.spawn(aas_titanLoop)
+            else if titanThread then task.cancel(titanThread) titanThread = nil end end
+        end })
 
-    local G1Group = Tabs.Gacha:AddRightGroupbox("Auto Grimoire (Slot 1)", "book-open")
-    local g1LabelObj = G1Group:AddLabel("Slot 1: None", false, "Grimoire1Label")
-    S.grimoire1LabelRef = Options["Grimoire1Label"] or g1LabelObj
-    G1Group:AddToggle("AutoGrimoire1Enabled", {
-        Text = "Enable Auto Roll (Slot 1)", Default = false,
-        Callback = function(value)
-            S.grimoire1Enabled = value
-            if value then if S.grimoire1Thread then task.cancel(S.grimoire1Thread) end S.grimoire1Thread = task.spawn(aas_grimoire1Loop)
-            else if S.grimoire1Thread then task.cancel(S.grimoire1Thread) S.grimoire1Thread = nil end end
-        end,
-    })
-
-    local G2Group = Tabs.Gacha:AddRightGroupbox("Auto Grimoire (Slot 2)", "book-open")
-    local g2LabelObj = G2Group:AddLabel("Slot 2: None", false, "Grimoire2Label")
-    S.grimoire2LabelRef = Options["Grimoire2Label"] or g2LabelObj
-    G2Group:AddToggle("AutoGrimoire2Enabled", {
-        Text = "Enable Auto Roll (Slot 2)", Default = false,
-        Callback = function(value)
-            S.grimoire2Enabled = value
-            if value then if S.grimoire2Thread then task.cancel(S.grimoire2Thread) end S.grimoire2Thread = task.spawn(aas_grimoire2Loop)
-            else if S.grimoire2Thread then task.cancel(S.grimoire2Thread) S.grimoire2Thread = nil end end
-        end,
-    })
-
-    local PPGroup = Tabs.Gacha:AddRightGroupbox("Auto Pet Passive", "paw-print")
-    PPGroup:AddLabel("Refresh to scan equipped pets. Stops at selected rarity.", true)
-    local ppLabelObj = PPGroup:AddLabel("Current: None", false, "PetPassiveActiveLabel")
-    S.petPassiveLabelRef = Options["PetPassiveActiveLabel"] or ppLabelObj
-    PPGroup:AddDropdown("PetPassivePetSelect", { Values={"(Click Refresh)"}, Default=1, Text="Select Equipped Pet",
-        Callback = function(val)
-            local uuid = S.petPassiveDisplayToId and S.petPassiveDisplayToId[val]
-            if uuid then S.petPassiveSelectedPetId = uuid pcall(aas_syncPetPassiveData) end
-        end,
-    })
-    PPGroup:AddButton({
-        Text = "Refresh Pets",
-        Func = function()
+    local PetPassTab = Tabs.Swords:AddRightGroupbox({ Name = "Pet", Icon = "paw-print" })
+    local ppLabelObj = PetPassTab:CreateLabel("Current: None")
+    petPassiveLabelRef = Options["PetPassiveActiveLabel"] or ppLabelObj
+    PetPassTab:CreateDropdown({ Name = "Select Equipped Pet", Options = {"(Click Refresh)"}, CurrentOption = 1, Flag = "PetPassivePetSelect", Callback = function(val)
+            local uuid = petPassiveDisplayToId and petPassiveDisplayToId[val]
+            if uuid then petPassiveSelectedPetId = uuid pcall(aas_syncPetPassiveData) end
+        end })
+    PetPassTab:CreateButton({ Name = "Refresh Pets", Callback = function()
             local success, equipped = pcall(aas_scanEquippedPets)
-            if not success then Library:Notify("Pet Passive Error - Failed to scan pets.") return end
+            if not success then Window:Notify({ Title = "Euclidean", Content = "Pet Passive Error - Failed to scan pets.", Duration = 3, Type = "Info" }) return end
             local count = 0 for _ in pairs(equipped) do count = count + 1 end
-            if count == 0 then Library:Notify("Pet Passive - No equipped pets found.") return end
-            local values = {} S.petPassiveDisplayToId = {}
+            if count == 0 then Window:Notify({ Title = "Euclidean", Content = "Pet Passive - No equipped pets found.", Duration = 3, Type = "Info" }) return end
+            local values = {} petPassiveDisplayToId = {}
             local nameCounts = {}
             for uuid, info in pairs(equipped) do
                 local name = info.Name
@@ -5270,117 +5194,150 @@ do
                 local displayName = nameCounts[name] > 1 and (name.." #"..nameCounts[name]) or name
                 if info.Passive then displayName = displayName.." ["..info.Passive.Name.." - "..info.Passive.Rarity.."]"
                 else displayName = displayName.." [No Passive]" end
-                table.insert(values, displayName) S.petPassiveDisplayToId[displayName] = uuid
+                table.insert(values, displayName) petPassiveDisplayToId[displayName] = uuid
             end
             table.sort(values)
             if Options["PetPassivePetSelect"] then
                 Options["PetPassivePetSelect"]:SetValues(values)
                 if #values > 0 then
                     Options["PetPassivePetSelect"]:SetValue(values[1])
-                    S.petPassiveSelectedPetId = S.petPassiveDisplayToId[values[1]]
+                    petPassiveSelectedPetId = petPassiveDisplayToId[values[1]]
                     pcall(aas_syncPetPassiveData)
                 end
             end
-            Library:Notify("Pet Passive - Found "..tostring(count).." equipped pet(s)!")
-        end,
-    })
-    PPGroup:AddDropdown("PetPassiveStopRarities", { Values=S.PetPassiveRarityOrder, Multi=true, Default=nil, Text="Stop at Rarity", Callback=function(_) end })
-    PPGroup:AddToggle("AutoPetPassiveEnabled", {
-        Text = "Enable Auto Pet Passive Roll", Default = false,
-        Callback = function(value)
-            S.petPassiveAutoEnabled = value
+            Window:Notify({ Title = "Euclidean", Content = "Pet Passive - Found "..tostring(count).." equipped pet(s)!", Duration = 3, Type = "Info" })
+        end })
+    PetPassTab:CreateDropdown({ Name = "Stop at Rarity", Options = PetPassiveRarityOrder, MultipleOptions = true, Flag = "PetPassiveStopRarities", Callback = function(_) end })
+    PetPassTab:CreateToggle({ Name = "Enable Auto Roll", Flag = "AutoPetPassiveEnabled", CurrentValue = false, Callback = function(value)
+            petPassiveAutoEnabled = value
             if value then
-                if not S.petPassiveSelectedPetId or S.petPassiveSelectedPetId == "" then
+                if not petPassiveSelectedPetId or petPassiveSelectedPetId == "" then
                     Toggles["AutoPetPassiveEnabled"]:SetValue(false)
-                    Library:Notify("Pet Passive - Select an equipped pet first!")
+                    Window:Notify({ Title = "Euclidean", Content = "Pet Passive - Select an equipped pet first!", Duration = 3, Type = "Info" })
                     return
                 end
-                if S.petPassiveThread then task.cancel(S.petPassiveThread) end
-                S.petPassiveThread = task.spawn(aas_petPassiveLoop)
-                Library:Notify("Auto Pet Passive - Started!")
+                if petPassiveThread then task.cancel(petPassiveThread) end
+                petPassiveThread = task.spawn(aas_petPassiveLoop)
+                Window:Notify({ Title = "Euclidean", Content = "Auto Pet Passive - Started!", Duration = 3, Type = "Info" })
             else
-                if S.petPassiveThread then task.cancel(S.petPassiveThread) S.petPassiveThread = nil end
+                if petPassiveThread then task.cancel(petPassiveThread) petPassiveThread = nil end
             end
-        end,
-    })
+        end })
+
+
+    local SP1Tab = Tabs.Swords:AddLeftGroupbox({ Name = "Sword 1", Icon = "sword" })
+    local sp1InfoObj = SP1Tab:CreateLabel("Sword 1: Loading...")
+    sword1InfoLabelRef = Options["SwordPassive1InfoLabel"] or sp1InfoObj
+    local sp1BreathObj = SP1Tab:CreateLabel("Breathing: None")
+    sword1BreathingLabelRef = Options["SwordPassive1BreathLabel"] or sp1BreathObj
+    SP1Tab:CreateDropdown({ Name = "Stop at Rarity", Options = SwordPassiveRarityOrder, MultipleOptions = true, Flag = "SwordPassive1StopRarities", Callback = function(_) end })
+    SP1Tab:CreateToggle({ Name = "Enable Auto Roll", Flag = "AutoSwordPassive1Enabled", CurrentValue = false, Callback = function(value)
+            swordPassive1Enabled = value
+            if value then if swordPassive1Thread then task.cancel(swordPassive1Thread) end swordPassive1Thread = task.spawn(aas_swordPassive1Loop)
+            else if swordPassive1Thread then task.cancel(swordPassive1Thread) swordPassive1Thread = nil end end
+        end })
+
+    local SP2Tab = Tabs.Swords:AddRightGroupbox({ Name = "Sword 2", Icon = "swords" })
+    local sp2InfoObj = SP2Tab:CreateLabel("Sword 2: Loading...")
+    sword2InfoLabelRef = Options["SwordPassive2InfoLabel"] or sp2InfoObj
+    local sp2BreathObj = SP2Tab:CreateLabel("Breathing: None")
+    sword2BreathingLabelRef = Options["SwordPassive2BreathLabel"] or sp2BreathObj
+    SP2Tab:CreateDropdown({ Name = "Stop at Rarity", Options = SwordPassiveRarityOrder, MultipleOptions = true, Flag = "SwordPassive2StopRarities", Callback = function(_) end })
+    SP2Tab:CreateToggle({ Name = "Enable Auto Roll", Flag = "AutoSwordPassive2Enabled", CurrentValue = false, Callback = function(value)
+            swordPassive2Enabled = value
+            if value then if swordPassive2Thread then task.cancel(swordPassive2Thread) end swordPassive2Thread = task.spawn(aas_swordPassive2Loop)
+            else if swordPassive2Thread then task.cancel(swordPassive2Thread) swordPassive2Thread = nil end end
+        end })
+
+    local GrTab = Tabs.Swords:AddLeftGroupbox({ Name = "Grimoire", Icon = "book" })
+    local g1LabelObj = GrTab:CreateLabel("Slot 1: None")
+    grimoire1LabelRef = Options["Grimoire1Label"] or g1LabelObj
+    GrTab:CreateToggle({ Name = "Enable Auto Roll (Slot 1)", Flag = "AutoGrimoire1Enabled", CurrentValue = false, Callback = function(value)
+            grimoire1Enabled = value
+            if value then if grimoire1Thread then task.cancel(grimoire1Thread) end grimoire1Thread = task.spawn(aas_grimoire1Loop)
+            else if grimoire1Thread then task.cancel(grimoire1Thread) grimoire1Thread = nil end end
+        end })
+    GrTab:CreateDivider()
+    local g2LabelObj = GrTab:CreateLabel("Slot 2: None")
+    grimoire2LabelRef = Options["Grimoire2Label"] or g2LabelObj
+    GrTab:CreateToggle({ Name = "Enable Auto Roll (Slot 2)", Flag = "AutoGrimoire2Enabled", CurrentValue = false, Callback = function(value)
+            grimoire2Enabled = value
+            if value then if grimoire2Thread then task.cancel(grimoire2Thread) end grimoire2Thread = task.spawn(aas_grimoire2Loop)
+            else if grimoire2Thread then task.cancel(grimoire2Thread) grimoire2Thread = nil end end
+        end })
 end
 
 -- ══════════════════════════════════════════
---   PROGRESSION TAB (SOLID COLORS)
+--   PROGRESSION SUBTAB
 -- ══════════════════════════════════════════
 
 do
-    local ProgInfo = Tabs.Progression:AddLeftGroupbox("Auto Progressions", "trending-up")
-    ProgInfo:AddLabel("Each progression runs simultaneously. Stops at max level.", true)
-    ProgInfo:AddDivider()
-
-    for _, progKey in ipairs(S.sortedProgressionKeys) do
-        local progData = S.ProgressionList[progKey]
+    local TrainBox = Tabs.Training:AddLeftGroupbox({ Name = "Progression", Icon = "dumbbell" })
+    for _, progKey in ipairs(sortedProgressionKeys) do
+        aas_buildTick()
+        local progData = ProgressionList[progKey]
         local toggleKey = "AutoProgression_"..progKey
-        S.progressionEnabled[progKey] = false
+        progressionEnabled[progKey] = false
         local worldLabel = aas_getWorldLabel(progData.WorldId or 0)
-        local ProgGroup = Tabs.Progression:AddLeftGroupbox(worldLabel, "zap")
-        local levelLabelObj = ProgGroup:AddLabel("Level: 0 / "..tostring(progData.MaxLevel), false, "ProgLevel_"..progKey)
-        S.progressionLevelLabelRefs[progKey] = Options["ProgLevel_"..progKey] or levelLabelObj
-        ProgGroup:AddToggle(toggleKey, {
-            Text = "Enable Auto Upgrade", Default = false,
-            Callback = function(value)
-                S.progressionEnabled[progKey] = value
+        TrainBox:CreateLabel(worldLabel)
+        local levelLabelObj = TrainBox:CreateLabel("Level: 0 / "..tostring(progData.MaxLevel))
+        progressionLevelLabelRefs[progKey] = Options["ProgLevel_"..progKey] or levelLabelObj
+        TrainBox:CreateToggle({ Name = "Enable Auto Upgrade", Flag = toggleKey, CurrentValue = false, Callback = function(value)
+                progressionEnabled[progKey] = value
                 if value then
-                    if S.progressionThreads[progKey] then task.cancel(S.progressionThreads[progKey]) end
-                    S.progressionThreads[progKey] = task.spawn(function() aas_progressionLoop(progKey) end)
-                    Library:Notify(progData.Name.." - Auto Progression started!")
+                    if progressionThreads[progKey] then task.cancel(progressionThreads[progKey]) end
+                    progressionThreads[progKey] = task.spawn(function() aas_progressionLoop(progKey) end)
+                    Window:Notify({ Title = "Euclidean", Content = progData.Name.." - Auto Progression started!", Duration = 3, Type = "Info" })
                 else
-                    if S.progressionThreads[progKey] then task.cancel(S.progressionThreads[progKey]) S.progressionThreads[progKey] = nil end
+                    if progressionThreads[progKey] then task.cancel(progressionThreads[progKey]) progressionThreads[progKey] = nil end
                 end
-            end,
-        })
+            end })
+        TrainBox:CreateDivider()
     end
+end
 
-    local UpgradeGroup = Tabs.Progression:AddRightGroupbox("Auto Upgrades", "zap")
-    UpgradeGroup:AddLabel("Auto upgrade stats per system.", true)
-    UpgradeGroup:AddDivider()
+-- ══════════════════════════════════════════
+--   UPGRADES SUBTAB (TABBOX)
+-- ══════════════════════════════════════════
 
-    for _, sysKey in ipairs(S.sortedUpgradeSystemKeys) do
-        local sysData = S.UpgradeSystemList[sysKey]
+do
+
+    local UpTab = Tabs.Upgrades:AddRightGroupbox({ Name = "Upgrades", Icon = "arrow-up" })
+    for _, sysKey in ipairs(sortedUpgradeSystemKeys) do
+        aas_buildTick()
+        local sysData = UpgradeSystemList[sysKey]
         local worldLabel = aas_getWorldLabel(sysData.WorldId or 0)
         local statDropKey = "UpgradeStat_"..sysKey
         local upgradeTogKey = "AutoUpgrade_"..sysKey
-        local UGroup = Tabs.Progression:AddRightGroupbox(worldLabel.." Upgrades", "arrow-up")
         local currentStatForSys = { value = "Power" }
-        UGroup:AddDropdown(statDropKey, { Values=S.UpgradeStatKeys, Default=1, Text="Stat to Upgrade", Callback=function(val) currentStatForSys.value=val end })
-        UGroup:AddToggle(upgradeTogKey, {
-            Text = "Enable Auto Upgrade", Default = false,
-            Callback = function(value)
+        UpTab:CreateLabel(worldLabel)
+        UpTab:CreateDropdown({ Name = "Stat to Upgrade", Options = UpgradeStatKeys, CurrentOption = 1, Flag = statDropKey, Callback = function(val) currentStatForSys.value=val end })
+        UpTab:CreateToggle({ Name = "Enable Auto Upgrade", Flag = upgradeTogKey, CurrentValue = false, Callback = function(value)
                 if value then
                     local thread = task.spawn(function()
                         while Toggles[upgradeTogKey] and Toggles[upgradeTogKey].Value do
                             pcall(function() aas_upgradesRequestRemote:Fire(sysKey, currentStatForSys.value) end) task.wait(1.0)
                         end
                     end)
-                    if S.rangeUpgradeThreads["upgrade_"..sysKey] then task.cancel(S.rangeUpgradeThreads["upgrade_"..sysKey]) end
-                    S.rangeUpgradeThreads["upgrade_"..sysKey] = thread
-                    Library:Notify(sysData.Name.." - Auto Upgrade started!")
+                    if rangeUpgradeThreads["upgrade_"..sysKey] then task.cancel(rangeUpgradeThreads["upgrade_"..sysKey]) end
+                    rangeUpgradeThreads["upgrade_"..sysKey] = thread
+                    Window:Notify({ Title = "Euclidean", Content = sysData.Name.." - Auto Upgrade started!", Duration = 3, Type = "Info" })
                 else
-                    local t = S.rangeUpgradeThreads["upgrade_"..sysKey]
-                    if t then task.cancel(t) S.rangeUpgradeThreads["upgrade_"..sysKey] = nil end
+                    local t = rangeUpgradeThreads["upgrade_"..sysKey]
+                    if t then task.cancel(t) rangeUpgradeThreads["upgrade_"..sysKey] = nil end
                 end
-            end,
-        })
-        UGroup:AddDivider()
-        UGroup:AddToggle("AutoRangeUpgrade_"..sysKey, {
-            Text = "Enable Auto Range Upgrade", Default = false,
-            Callback = function(value)
-                S.rangeUpgradeEnabled[sysKey] = value
+            end })
+        UpTab:CreateToggle({ Name = "Enable Auto Range Upgrade", Flag = "AutoRangeUpgrade_"..sysKey, CurrentValue = false, Callback = function(value)
+                rangeUpgradeEnabled[sysKey] = value
                 if value then
-                    if S.rangeUpgradeThreads[sysKey] then task.cancel(S.rangeUpgradeThreads[sysKey]) end
-                    S.rangeUpgradeThreads[sysKey] = task.spawn(function() aas_rangeUpgradeLoop(sysKey) end)
-                    Library:Notify(sysData.Name.." Range - Started!")
+                    if rangeUpgradeThreads[sysKey] then task.cancel(rangeUpgradeThreads[sysKey]) end
+                    rangeUpgradeThreads[sysKey] = task.spawn(function() aas_rangeUpgradeLoop(sysKey) end)
+                    Window:Notify({ Title = "Euclidean", Content = sysData.Name.." Range - Started!", Duration = 3, Type = "Info" })
                 else
-                    if S.rangeUpgradeThreads[sysKey] then task.cancel(S.rangeUpgradeThreads[sysKey]) S.rangeUpgradeThreads[sysKey] = nil end
+                    if rangeUpgradeThreads[sysKey] then task.cancel(rangeUpgradeThreads[sysKey]) rangeUpgradeThreads[sysKey] = nil end
                 end
-            end,
-        })
+            end })
+        UpTab:CreateDivider()
     end
 
     local allSystems2 = aas_Upgrades2Config and aas_Upgrades2Config:GetAllSystems() or {}
@@ -5388,7 +5345,9 @@ do
     for sysKey in pairs(allSystems2) do table.insert(sortedSysKeys2, sysKey) end
     table.sort(sortedSysKeys2, function(a,b) return (allSystems2[a] and allSystems2[a].WorldId or 0) < (allSystems2[b] and allSystems2[b].WorldId or 0) end)
 
+    local Up2Tab = Tabs.Upgrades:AddLeftGroupbox({ Name = "Upgrades 2", Icon = "briefcase" })
     for _, sysKey in ipairs(sortedSysKeys2) do
+        aas_buildTick()
         local sysData = allSystems2[sysKey]
         local sysName = sysData and sysData.Name or sysKey
         local worldLabel = aas_getWorldLabel(sysData and sysData.WorldId or 0)
@@ -5397,130 +5356,142 @@ do
 
         local upgradeDisplayNames, upgradeDisplayToKey = {}, {}
         for _, upg in ipairs(upgradeList) do
+            aas_buildTick()
             local display = upg.DisplayName or upg.Key
             table.insert(upgradeDisplayNames, display)
             upgradeDisplayToKey[display] = upg.Key
         end
 
-        local U2Group = Tabs.Progression:AddRightGroupbox(sysName.." ("..worldLabel..")", "briefcase")
-        S.upgrades2SelectedStats[sysKey] = {}
-        U2Group:AddDropdown("Upgrades2StatSelect_"..sysKey, {
-            Values = upgradeDisplayNames, Multi = true, Default = nil,
-            Text = "Select Stats to Upgrade", Searchable = #upgradeDisplayNames > 6,
-            Callback = function(val)
-                S.upgrades2SelectedStats[sysKey] = {}
+        upgrades2SelectedStats[sysKey] = {}
+        Up2Tab:CreateLabel(sysName.." ("..worldLabel..")")
+        Up2Tab:CreateDropdown({ Name = "Select Stats to Upgrade", Options = upgradeDisplayNames, MultipleOptions = true, Flag = "Upgrades2StatSelect_"..sysKey, Callback = function(val)
+                upgrades2SelectedStats[sysKey] = {}
                 for display, state in pairs(val or {}) do
-                    if state then local key = upgradeDisplayToKey[display] if key then S.upgrades2SelectedStats[sysKey][key] = true end end
+                    if state and upgradeDisplayToKey[display] then
+                        upgrades2SelectedStats[sysKey][upgradeDisplayToKey[display]] = true
+                    end
                 end
-            end,
-        })
-        S.upgrades2Enabled2[sysKey] = false
-        U2Group:AddToggle("AutoUpgrades2_"..sysKey, {
-            Text = "Enable Auto Upgrade ("..sysName..")", Default = false,
-            Callback = function(value)
-                S.upgrades2Enabled2[sysKey] = value
+            end })
+        upgrades2Enabled2[sysKey] = false
+        Up2Tab:CreateToggle({ Name = "Enable Auto Upgrade ("..sysName..")", Flag = "AutoUpgrades2_"..sysKey, CurrentValue = false, Callback = function(value)
+                upgrades2Enabled2[sysKey] = value
                 if value then
-                    if S.upgrades2Threads2[sysKey] then task.cancel(S.upgrades2Threads2[sysKey]) end
+                    if upgrades2Threads2[sysKey] then task.cancel(upgrades2Threads2[sysKey]) end
                     local anySelected = false
-                    for _ in pairs(S.upgrades2SelectedStats[sysKey] or {}) do anySelected = true break end
+                    for _ in pairs(upgrades2SelectedStats[sysKey] or {}) do anySelected = true break end
                     if not anySelected then
-                        Toggles["AutoUpgrades2_"..sysKey]:SetValue(false) S.upgrades2Enabled2[sysKey] = false
-                        Library:Notify(sysName.." - Select at least one stat first!") return
+                        Toggles["AutoUpgrades2_"..sysKey]:SetValue(false) upgrades2Enabled2[sysKey] = false
+                        Window:Notify({ Title = "Euclidean", Content = sysName.." - Select at least one stat first!", Duration = 3, Type = "Info" }) return
                     end
-                    S.upgrades2Threads2[sysKey] = task.spawn(function() aas_upgrades2LoopV2(sysKey) end)
-                    Library:Notify(sysName.." - Auto Upgrade started!")
+                    upgrades2Threads2[sysKey] = task.spawn(function() aas_upgrades2LoopV2(sysKey) end)
+                    Window:Notify({ Title = "Euclidean", Content = sysName.." - Auto Upgrade started!", Duration = 3, Type = "Info" })
                 else
-                    if S.upgrades2Threads2[sysKey] then task.cancel(S.upgrades2Threads2[sysKey]) S.upgrades2Threads2[sysKey] = nil end
+                    if upgrades2Threads2[sysKey] then task.cancel(upgrades2Threads2[sysKey]) upgrades2Threads2[sysKey] = nil end
                 end
-            end,
-        })
-        U2Group:AddDivider()
-        U2Group:AddToggle("AutoRangeUpgrade2_"..sysKey, {
-            Text = "Enable Auto Range Upgrade", Default = false,
-            Callback = function(value)
-                S.rangeUpgradeEnabled[sysKey] = value
+            end })
+        Up2Tab:CreateToggle({ Name = "Enable Auto Range Upgrade", Flag = "AutoRangeUpgrade2_"..sysKey, CurrentValue = false, Callback = function(value)
+                rangeUpgradeEnabled[sysKey] = value
                 if value then
-                    if S.rangeUpgradeThreads[sysKey] then task.cancel(S.rangeUpgradeThreads[sysKey]) end
-                    S.rangeUpgradeThreads[sysKey] = task.spawn(function() aas_rangeUpgradeLoop(sysKey) end)
-                    Library:Notify(sysName.." Range - Started!")
+                    if rangeUpgradeThreads[sysKey] then task.cancel(rangeUpgradeThreads[sysKey]) end
+                    rangeUpgradeThreads[sysKey] = task.spawn(function() aas_rangeUpgradeLoop(sysKey) end)
+                    Window:Notify({ Title = "Euclidean", Content = sysName.." Range - Started!", Duration = 3, Type = "Info" })
                 else
-                    if S.rangeUpgradeThreads[sysKey] then task.cancel(S.rangeUpgradeThreads[sysKey]) S.rangeUpgradeThreads[sysKey] = nil end
+                    if rangeUpgradeThreads[sysKey] then task.cancel(rangeUpgradeThreads[sysKey]) rangeUpgradeThreads[sysKey] = nil end
                 end
-            end,
-        })
+            end })
+        Up2Tab:CreateDivider()
     end
+end
 
-    local EvoGroup = Tabs.Progression:AddRightGroupbox("Auto Evolution", "zap")
-    if #S.sortedEvolutionKeys == 0 then EvoGroup:AddLabel("No evolution data found.", true)
+-- ══════════════════════════════════════════
+--   GROWTH SUBTAB (TABBOX)
+-- ══════════════════════════════════════════
+
+do
+
+    local EvoTab = Tabs.Growth:AddRightGroupbox({ Name = "Evolve", Icon = "dna" })
+    if #sortedEvolutionKeys == 0 then EvoTab:CreateLabel("No evolution data found.")
     else
-        for _, evKey in ipairs(S.sortedEvolutionKeys) do
-            local evData = S.EvolutionList[evKey]
-            EvoGroup:AddLabel("• "..evData.Name.." | "..evData.Stat.." | Max: "..tostring(evData.MaxLevel), true)
+        for _, evKey in ipairs(sortedEvolutionKeys) do
+            aas_buildTick()
+            local evData = EvolutionList[evKey]
+            EvoTab:CreateLabel("• "..evData.Name.." | "..evData.Stat.." | Max: "..tostring(evData.MaxLevel))
         end
-        EvoGroup:AddDivider()
-        EvoGroup:AddToggle("AutoEvolutionEnabled", {
-            Text = "Enable Auto Evolution", Default = false,
-            Callback = function(value)
-                S.autoEvolutionEnabled = value
+        EvoTab:CreateDivider()
+        EvoTab:CreateToggle({ Name = "Enable Auto Evolution", Flag = "AutoEvolutionEnabled", CurrentValue = false, Callback = function(value)
+                autoEvolutionEnabled = value
                 if value then
-                    if S.autoEvolutionThread then task.cancel(S.autoEvolutionThread) end
-                    S.autoEvolutionThread = task.spawn(aas_autoEvolutionLoop)
-                    Library:Notify("Auto Evolution - Started!")
+                    if autoEvolutionThread then task.cancel(autoEvolutionThread) end
+                    autoEvolutionThread = task.spawn(aas_autoEvolutionLoop)
+                    Window:Notify({ Title = "Euclidean", Content = "Auto Evolution - Started!", Duration = 3, Type = "Info" })
                 else
-                    if S.autoEvolutionThread then task.cancel(S.autoEvolutionThread) S.autoEvolutionThread = nil end
+                    if autoEvolutionThread then task.cancel(autoEvolutionThread) autoEvolutionThread = nil end
                 end
-            end,
-        })
+            end })
     end
 
-    local STGroup = Tabs.Progression:AddRightGroupbox("Auto Skill Tree", "git-branch")
-    if #S.sortedSkillTreeKeys == 0 then STGroup:AddLabel("No skill tree data found.", true)
-    else
-        STGroup:AddLabel("Purchases all upgrades in order.", true) STGroup:AddDivider()
-        for _, treeName in ipairs(S.sortedSkillTreeKeys) do
-            local treeData = S.SkillTreeList[treeName]
+    local RelicTab = Tabs.Growth:AddLeftGroupbox({ Name = "Relics", Icon = "gem" })
+    RelicTab:CreateToggle({ Name = "Auto Upgrade All Relics", Flag = "AutoRelicUpgradeEnabled", CurrentValue = false, Callback = function(value)
+            autoRelicUpgradeEnabled = value
+            if value then
+                if autoRelicUpgradeThread then task.cancel(autoRelicUpgradeThread) end
+                autoRelicUpgradeThread = task.spawn(aas_autoRelicUpgradeLoop)
+                Window:Notify({ Title = "Euclidean", Content = "Auto Relic Upgrade - Started!", Duration = 3, Type = "Info" })
+            else
+                if autoRelicUpgradeThread then task.cancel(autoRelicUpgradeThread) autoRelicUpgradeThread = nil end
+            end
+        end })
+    RelicTab:CreateToggle({ Name = "Auto Ascend All Relics", Flag = "AutoRelicAscendEnabled", CurrentValue = false, Callback = function(value)
+            autoRelicAscendEnabled = value
+            if value then
+                if autoRelicAscendThread then task.cancel(autoRelicAscendThread) end
+                autoRelicAscendThread = task.spawn(aas_autoRelicAscendLoop)
+                Window:Notify({ Title = "Euclidean", Content = "Auto Relic Ascend - Started!", Duration = 3, Type = "Info" })
+            else
+                if autoRelicAscendThread then task.cancel(autoRelicAscendThread) autoRelicAscendThread = nil end
+            end
+        end })
+
+    local TreeTab = Tabs.Growth:AddRightGroupbox({ Name = "Trees", Icon = "network" })
+    if #sortedSkillTreeKeys > 0 then
+        for _, treeName in ipairs(sortedSkillTreeKeys) do
+            aas_buildTick()
+            local treeData = SkillTreeList[treeName]
             local toggleKey = "AutoSkillTree_"..treeName
-            S.skillTreeEnabled[treeName] = false
-            STGroup:AddToggle(toggleKey, {
-                Text = treeName.." ("..aas_getWorldLabel(treeData.WorldId or 0)..") — "..tostring(treeData.UpgradeCount).." nodes",
-                Default = false,
-                Callback = function(value)
-                    S.skillTreeEnabled[treeName] = value
+            skillTreeEnabled[treeName] = false
+            TreeTab:CreateToggle({ Name = treeName.." ("..aas_getWorldLabel(treeData.WorldId or 0)..") — "..tostring(treeData.UpgradeCount).." nodes", Flag = toggleKey, CurrentValue = false, Callback = function(value)
+                    skillTreeEnabled[treeName] = value
                     if value then
-                        if S.skillTreeThreads[treeName] then task.cancel(S.skillTreeThreads[treeName]) end
-                        S.skillTreeThreads[treeName] = task.spawn(function() aas_skillTreeLoop(treeName) end)
-                        Library:Notify("Skill Tree: "..treeName.." - Started!")
+                        if skillTreeThreads[treeName] then task.cancel(skillTreeThreads[treeName]) end
+                        skillTreeThreads[treeName] = task.spawn(function() aas_skillTreeLoop(treeName) end)
+                        Window:Notify({ Title = "Euclidean", Content = "Skill Tree: "..treeName.." - Started!", Duration = 3, Type = "Info" })
                     else
-                        if S.skillTreeThreads[treeName] then task.cancel(S.skillTreeThreads[treeName]) S.skillTreeThreads[treeName] = nil end
+                        if skillTreeThreads[treeName] then task.cancel(skillTreeThreads[treeName]) skillTreeThreads[treeName] = nil end
                     end
-                end,
-            })
+                end })
         end
     end
-
-    local ConstGroup = Tabs.Progression:AddRightGroupbox("Auto Constellation", "star")
-    if #S.sortedConstellationKeys == 0 then ConstGroup:AddLabel("No constellation data found.", true)
-    else
-        ConstGroup:AddLabel("Purchases all nodes in order.", true) ConstGroup:AddDivider()
-        for _, constId in ipairs(S.sortedConstellationKeys) do
-            local constData = S.ConstellationList[constId]
+    if #sortedConstellationKeys > 0 then
+        TreeTab:CreateDivider()
+        for _, constId in ipairs(sortedConstellationKeys) do
+            aas_buildTick()
+            local constData = ConstellationList[constId]
             local toggleKey = "AutoConstellation_"..constId
-            S.constellationEnabled[constId] = false
-            ConstGroup:AddToggle(toggleKey, {
-                Text = constData.Name.." — "..tostring(constData.NodeCount).." nodes",
-                Default = false,
-                Callback = function(value)
-                    S.constellationEnabled[constId] = value
+            constellationEnabled[constId] = false
+            TreeTab:CreateToggle({ Name = constData.Name.." — "..tostring(constData.NodeCount).." nodes", Flag = toggleKey, CurrentValue = false, Callback = function(value)
+                    constellationEnabled[constId] = value
                     if value then
-                        if S.constellationThreads[constId] then task.cancel(S.constellationThreads[constId]) end
-                        S.constellationThreads[constId] = task.spawn(function() aas_constellationLoop(constId) end)
-                        Library:Notify("Constellation: "..constData.Name.." - Started!")
+                        if constellationThreads[constId] then task.cancel(constellationThreads[constId]) end
+                        constellationThreads[constId] = task.spawn(function() aas_constellationLoop(constId) end)
+                        Window:Notify({ Title = "Euclidean", Content = "Constellation: "..constData.Name.." - Started!", Duration = 3, Type = "Info" })
                     else
-                        if S.constellationThreads[constId] then task.cancel(S.constellationThreads[constId]) S.constellationThreads[constId] = nil end
+                        if constellationThreads[constId] then task.cancel(constellationThreads[constId]) constellationThreads[constId] = nil end
                     end
-                end,
-            })
+                end })
         end
+    end
+    if #sortedSkillTreeKeys == 0 and #sortedConstellationKeys == 0 then
+        TreeTab:CreateLabel("No tree data found.")
     end
 end
 
@@ -5529,69 +5500,58 @@ end
 -- ══════════════════════════════════════════
 
 do
-    local StarInfo = Tabs.Star:AddLeftGroupbox("Auto Star", "star")
-    StarInfo:AddLabel("Automatically opens eggs from the selected world.", true)
-    StarInfo:AddDivider()
+    local StarInfo = Tabs.Star:AddLeftGroupbox({ Name = "Auto Star", Icon = "star" })
+        StarInfo:CreateDivider()
 
     local starWorldDisplayNames, starWorldDisplayToKey = {}, {}
-    for _, key in ipairs(S.sortedStarWorldKeys) do
-        local worldData = S.StarWorldList[key]
+    for _, key in ipairs(sortedStarWorldKeys) do
+        aas_buildTick()
+        local worldData = StarWorldList[key]
         local displayName = aas_getWorldLabel(worldData.WorldId)
         table.insert(starWorldDisplayNames, displayName)
         starWorldDisplayToKey[displayName] = key
     end
-    if #S.sortedStarWorldKeys > 0 then S.starEggKey = S.sortedStarWorldKeys[1] end
+    if #sortedStarWorldKeys > 0 then starEggKey = sortedStarWorldKeys[1] end
 
     if #starWorldDisplayNames > 0 then
-        StarInfo:AddDropdown("StarWorldSelect", {
-            Values = starWorldDisplayNames, Default = 1, Text = "Select World (Egg)",
-            Searchable = #starWorldDisplayNames > 5,
-            Callback = function(val)
+        StarInfo:CreateDropdown({ Name = "Select World (Egg)", Options = starWorldDisplayNames, CurrentOption = 1, Flag = "StarWorldSelect", Callback = function(val)
                 local key = starWorldDisplayToKey[val]
-                if key then S.starEggKey = key end
-            end,
-        })
+                if key then starEggKey = key end
+            end })
     end
-    StarInfo:AddToggle("AutoStarEnabled", {
-        Text = "Enable Auto Star Roll", Default = false,
-        Callback = function(value)
-            S.starEnabled = value
+    StarInfo:CreateToggle({ Name = "Enable Auto Star Roll", Flag = "AutoStarEnabled", CurrentValue = false, Callback = function(value)
+            starEnabled = value
             if value then
-                if not S.starEggKey then Toggles["AutoStarEnabled"]:SetValue(false) Library:Notify("Auto Star - No world selected!") return end
-                if S.starThread then task.cancel(S.starThread) S.starThread = nil end
-                S.starThread = task.spawn(aas_starLoop)
-                Library:Notify("Auto Star - Started rolling "..(S.starEggKey or "?"))
+                if not starEggKey then Toggles["AutoStarEnabled"]:SetValue(false) Window:Notify({ Title = "Euclidean", Content = "Auto Star - No world selected!", Duration = 3, Type = "Info" }) return end
+                if starThread then task.cancel(starThread) starThread = nil end
+                starThread = task.spawn(aas_starLoop)
+                Window:Notify({ Title = "Euclidean", Content = "Auto Star - Started rolling "..(starEggKey or "?"), Duration = 3, Type = "Info" })
             else
-                if S.starThread then task.cancel(S.starThread) S.starThread = nil end
+                if starThread then task.cancel(starThread) starThread = nil end
             end
-        end,
-    })
+        end })
 
-    local CraftInfo = Tabs.Star:AddRightGroupbox("Auto Craft", "hammer")
-    CraftInfo:AddLabel("Automatically crafts pets. Enable Shiny for shiny variants.", true)
-    CraftInfo:AddDivider()
+    local CraftBox = Tabs.Star:AddRightGroupbox({ Name = "Craft", Icon = "hammer" })
 
-    for _, craftKey in ipairs(S.sortedCraftKeys) do
-        local craftData = S.CraftList[craftKey]
+    for _, craftKey in ipairs(sortedCraftKeys) do
+        aas_buildTick()
+        local craftData = CraftList[craftKey]
         local toggleKey = "AutoCraft_"..craftKey
         local shinyKey = "AutoCraftShiny_"..craftKey
-        S.craftEnabled[craftKey] = false S.craftShiny[craftKey] = false
+        craftEnabled[craftKey] = false craftShiny[craftKey] = false
         local worldLabel = aas_getWorldLabel(craftData.WorldId or 0)
-        local CraftGroup = Tabs.Star:AddRightGroupbox(craftKey.." ("..worldLabel..")", "zap")
-        CraftGroup:AddToggle(shinyKey, { Text="Craft Shiny", Default=false, Callback=function(value) S.craftShiny[craftKey]=value end })
-        CraftGroup:AddToggle(toggleKey, {
-            Text = "Enable Auto Craft", Default = false,
-            Callback = function(value)
-                S.craftEnabled[craftKey] = value
+        CraftBox:CreateLabel(craftKey.." ("..worldLabel..")")
+        CraftBox:CreateToggle({ Name = "Craft Shiny", Flag = shinyKey, CurrentValue = false, Callback = function(value) craftShiny[craftKey]=value end })
+        CraftBox:CreateToggle({ Name = "Enable Auto Craft", Flag = toggleKey, CurrentValue = false, Callback = function(value)
+                craftEnabled[craftKey] = value
                 if value then
-                    if S.craftThreads[craftKey] then task.cancel(S.craftThreads[craftKey]) end
-                    S.craftThreads[craftKey] = task.spawn(function() aas_craftLoop(craftKey) end)
-                    Library:Notify(craftKey.." - Auto Craft started!")
+                    if craftThreads[craftKey] then task.cancel(craftThreads[craftKey]) end
+                    craftThreads[craftKey] = task.spawn(function() aas_craftLoop(craftKey) end)
+                    Window:Notify({ Title = "Euclidean", Content = craftKey.." - Auto Craft started!", Duration = 3, Type = "Info" })
                 else
-                    if S.craftThreads[craftKey] then task.cancel(S.craftThreads[craftKey]) S.craftThreads[craftKey] = nil end
+                    if craftThreads[craftKey] then task.cancel(craftThreads[craftKey]) craftThreads[craftKey] = nil end
                 end
-            end,
-        })
+            end })
     end
 end
 
@@ -5600,15 +5560,15 @@ end
 -- ══════════════════════════════════════════
 
 do
-    local GQListGroup = Tabs.Quests:AddLeftGroupbox("Quest Selection", "list")
-    GQListGroup:AddLabel("Select quests to auto-farm. Open Global Quest window to see progress.", true)
-    GQListGroup:AddDivider()
+    local GQListGroup = Tabs.Quests:AddLeftGroupbox({ Name = "Quest Selection", Icon = "list" })
+        GQListGroup:CreateDivider()
 
     local aas_gqAllValues = {}
     do
         local allQuests = {}
         pcall(function() allQuests = aas_GlobalQuestConfig:GetAll() or {} end)
         for i, def in ipairs(allQuests) do
+            aas_buildTick()
             local display, farmable = "", false
             pcall(function() display = aas_gqBuildDisplay(i) end)
             pcall(function() farmable = aas_gqIsFarmable(i) end)
@@ -5617,82 +5577,41 @@ do
     end
 
     if #aas_gqAllValues > 0 then
-        GQListGroup:AddDropdown("GQSelectQuests", {
-            Values = aas_gqAllValues, Multi = true, Default = nil,
-            Text = "Select Quests to Farm", Searchable = true, Callback = function(_) end,
-        })
-    else GQListGroup:AddLabel("No farmable quests found.", true) end
+        GQListGroup:CreateDropdown({ Name = "Select Quests to Farm", Options = aas_gqAllValues, MultipleOptions = true, Flag = "GQSelectQuests", Callback = function(_) end })
+    else GQListGroup:CreateLabel("No farmable quests found.") end
 
-    local GQControlGroup = Tabs.Quests:AddRightGroupbox("Controls", "settings")
-    GQControlGroup:AddToggle("GQAutoClaimAll", {
-        Text = "Auto Claim Completed Quests", Default = false,
-        Callback = function(value)
-            S.globalQuestAutoClaimEnabled = value
+    local GQControlGroup = Tabs.Quests:AddRightGroupbox({ Name = "Controls", Icon = "settings" })
+    GQControlGroup:CreateToggle({ Name = "Auto Claim Completed Quests", Flag = "GQAutoClaimAll", CurrentValue = false, Callback = function(value)
+            globalQuestAutoClaimEnabled = value
             if value then
-                if S.globalQuestClaimThread then task.cancel(S.globalQuestClaimThread) end
-                S.globalQuestClaimThread = task.spawn(function()
-                    while S.globalQuestAutoClaimEnabled do
+                if globalQuestClaimThread then task.cancel(globalQuestClaimThread) end
+                globalQuestClaimThread = task.spawn(function()
+                    while globalQuestAutoClaimEnabled do
                         pcall(function() aas_globalQuestClaimAllRemote:Fire() end) task.wait(30)
                     end
                 end)
-                Library:Notify("GQ Auto Claim - Enabled!")
+                Window:Notify({ Title = "Euclidean", Content = "GQ Auto Claim - Enabled!", Duration = 3, Type = "Info" })
             else
-                if S.globalQuestClaimThread then task.cancel(S.globalQuestClaimThread) S.globalQuestClaimThread = nil end
+                if globalQuestClaimThread then task.cancel(globalQuestClaimThread) globalQuestClaimThread = nil end
             end
-        end,
-    })
-    GQControlGroup:AddDivider()
-    GQControlGroup:AddToggle("GQFarmerEnabled", {
-        Text = "Enable Global Quest Farmer", Default = false,
-        Callback = function(value)
-            S.globalQuestEnabled = value
+        end })
+    GQControlGroup:CreateDivider()
+    GQControlGroup:CreateToggle({ Name = "Enable Global Quest Farmer", Flag = "GQFarmerEnabled", CurrentValue = false, Callback = function(value)
+            globalQuestEnabled = value
             if value then
-                if S.globalQuestThread then task.cancel(S.globalQuestThread) end
-                S.globalQuestThread = task.spawn(aas_globalQuestLoop)
-                Library:Notify("GQ Farmer - Started!")
+                if globalQuestThread then task.cancel(globalQuestThread) end
+                globalQuestThread = task.spawn(aas_globalQuestLoop)
+                Window:Notify({ Title = "Euclidean", Content = "GQ Farmer - Started!", Duration = 3, Type = "Info" })
             else
-                if S.globalQuestThread then task.cancel(S.globalQuestThread) S.globalQuestThread = nil end
-                S.globalQuestCurrentTarget = nil S.globalQuestCurrentAction = nil S.globalQuestSuppressedByPriority = false
+                if globalQuestThread then task.cancel(globalQuestThread) globalQuestThread = nil end
+                globalQuestCurrentTarget = nil globalQuestCurrentAction = nil globalQuestSuppressedByPriority = false
             end
-        end,
-    })
+        end })
 
-    local GQRelicGroup = Tabs.Quests:AddRightGroupbox("Auto Relic", "trending-up")
-    GQRelicGroup:AddLabel("Upgrades and ascends ALL owned relics.", true)
-    GQRelicGroup:AddDivider()
-    GQRelicGroup:AddToggle("AutoRelicUpgradeEnabled", {
-        Text = "Auto Upgrade All Relics", Default = false,
-        Callback = function(value)
-            S.autoRelicUpgradeEnabled = value
-            if value then
-                if S.autoRelicUpgradeThread then task.cancel(S.autoRelicUpgradeThread) end
-                S.autoRelicUpgradeThread = task.spawn(aas_autoRelicUpgradeLoop)
-                Library:Notify("Auto Relic Upgrade - Started!")
-            else
-                if S.autoRelicUpgradeThread then task.cancel(S.autoRelicUpgradeThread) S.autoRelicUpgradeThread = nil end
-            end
-        end,
-    })
-    GQRelicGroup:AddToggle("AutoRelicAscendEnabled", {
-        Text = "Auto Ascend All Relics", Default = false,
-        Callback = function(value)
-            S.autoRelicAscendEnabled = value
-            if value then
-                if S.autoRelicAscendThread then task.cancel(S.autoRelicAscendThread) end
-                S.autoRelicAscendThread = task.spawn(aas_autoRelicAscendLoop)
-                Library:Notify("Auto Relic Ascend - Started!")
-            else
-                if S.autoRelicAscendThread then task.cancel(S.autoRelicAscendThread) S.autoRelicAscendThread = nil end
-            end
-        end,
-    })
-
-    local GQFullListGroup = Tabs.Quests:AddLeftGroupbox("Quest Reference (All)", "book-open")
+    local GQFullListGroup = Tabs.Quests:AddLeftGroupbox({ Name = "Quest Reference (All)", Icon = "book-open" })
     local aas_gqStatusLabelRefs = {}
 
-    GQFullListGroup:AddButton({
-        Text = "Refresh Status",
-        Func = function()
+    GQFullListGroup:CreateButton({ Name = "Refresh Status", Callback = function()
             local claimedCount, completeCount, progressCount = 0, 0, 0
             local allQuests = aas_GlobalQuestConfig:GetAll() or {}
 
@@ -5716,26 +5635,25 @@ do
 
                 local labelRef = aas_gqStatusLabelRefs[i]
                 if labelRef then
-                    pcall(function() labelRef:SetText(statusIcon .. " " .. display .. progressText) end)
+                    aas_setLabel(labelRef, statusIcon .. " " .. display .. progressText)
                 end
             end
 
-            Library:Notify(
+            Window:Notify({ Title = "Euclidean", Content =
                 "GQ Status Refreshed - ✅ Claimed: " .. claimedCount ..
                 " | 🟡 Complete: " .. completeCount ..
-                " | ⏳ In Progress: " .. progressCount
-            )
-        end,
-    })
+                " | ⏳ In Progress: " .. progressCount, Duration = 3, Type = "Info" })
+        end })
 
-    GQFullListGroup:AddDivider()
+    GQFullListGroup:CreateDivider()
 
     do
         local allQuests = aas_GlobalQuestConfig:GetAll() or {}
         for i, def in ipairs(allQuests) do
+            aas_buildTick()
             local display = aas_gqBuildDisplay(i)
             local labelKey = "GQStatus_" .. i
-            local labelObj = GQFullListGroup:AddLabel("⏳ " .. display, true, labelKey)
+            local labelObj = GQFullListGroup:CreateLabel("⏳ " .. display)
             aas_gqStatusLabelRefs[i] = Options[labelKey] or labelObj
         end
     end
@@ -5746,61 +5664,52 @@ end
 -- ══════════════════════════════════════════
 
 do
-    local PromoInfoGroup = Tabs.Promotion:AddLeftGroupbox("Current Promotion Status", "list")
-    local promoRankObj = PromoInfoGroup:AddLabel("Current Rank: Loading...", false, "PromotionCurrentRankLabel")
-    S.promotionCurrentRankLabelRef = Options["PromotionCurrentRankLabel"] or promoRankObj
-    local promoNextObj = PromoInfoGroup:AddLabel("Next Rank: -", false, "PromotionNextRankLabel")
-    S.promotionNextRankLabelRef = Options["PromotionNextRankLabel"] or promoNextObj
-    local promoCanObj = PromoInfoGroup:AddLabel("Can Promote: false", false, "PromotionCanPromoteLabel")
-    S.promotionCanPromoteLabelRef = Options["PromotionCanPromoteLabel"] or promoCanObj
-    local promoProgObj = PromoInfoGroup:AddLabel("Mission Progress: 0/0", false, "PromotionProgressLabel")
-    S.promotionProgressLabelRef = Options["PromotionProgressLabel"] or promoProgObj
-    PromoInfoGroup:AddDivider()
+    local PromoInfoGroup = Tabs.Quests:AddLeftGroupbox({ Name = "Current Promotion Status", Icon = "list" })
+    local promoRankObj = PromoInfoGroup:CreateLabel("Current Rank: Loading...")
+    promotionCurrentRankLabelRef = Options["PromotionCurrentRankLabel"] or promoRankObj
+    local promoNextObj = PromoInfoGroup:CreateLabel("Next Rank: -")
+    promotionNextRankLabelRef = Options["PromotionNextRankLabel"] or promoNextObj
+    local promoCanObj = PromoInfoGroup:CreateLabel("Can Promote: false")
+    promotionCanPromoteLabelRef = Options["PromotionCanPromoteLabel"] or promoCanObj
+    local promoProgObj = PromoInfoGroup:CreateLabel("Mission Progress: 0/0")
+    promotionProgressLabelRef = Options["PromotionProgressLabel"] or promoProgObj
+    PromoInfoGroup:CreateDivider()
     for i = 1, 10 do
         local key = "PromotionMissionLabel_"..i
-        local obj = PromoInfoGroup:AddLabel(" ", true, key)
-        S.promotionMissionLabelRefs[i] = Options[key] or obj
+        local obj = PromoInfoGroup:CreateLabel(" ")
+        promotionMissionLabelRefs[i] = Options[key] or obj
     end
 
-    local PromoControlGroup = Tabs.Promotion:AddRightGroupbox("Controls", "settings")
-    PromoControlGroup:AddButton({
-        Text = "Refresh Promotion State",
-        Func = function()
+    local PromoControlGroup = Tabs.Quests:AddRightGroupbox({ Name = "Controls", Icon = "settings" })
+    PromoControlGroup:CreateButton({ Name = "Refresh Promotion State", Callback = function()
             pcall(aas_syncAllPlayerData) aas_requestPromotionState(2) aas_updatePromotionUi()
-            local state = S.promotionLiveState or aas_buildFallbackPromotionState()
-            Library:Notify("Promotion Refreshed - Rank: "..tostring(state and state.PromotionRank or "?"))
-        end,
-    })
-    PromoControlGroup:AddDivider()
-    PromoControlGroup:AddToggle("AutoPromotionEnabled", {
-        Text = "Enable Auto Promotion", Default = false,
-        Callback = function(value)
-            S.promotionEnabled = value
+            local state = promotionLiveState or aas_buildFallbackPromotionState()
+            Window:Notify({ Title = "Euclidean", Content = "Promotion Refreshed - Rank: "..tostring(state and state.PromotionRank or "?"), Duration = 3, Type = "Info" })
+        end })
+    PromoControlGroup:CreateDivider()
+    PromoControlGroup:CreateToggle({ Name = "Enable Auto Promotion", Flag = "AutoPromotionEnabled", CurrentValue = false, Callback = function(value)
+            promotionEnabled = value
             if value then
-                if S.promotionThread then task.cancel(S.promotionThread) S.promotionThread = nil end
-                S.promotionThread = task.spawn(aas_autoPromotionLoop)
-                Library:Notify("Auto Promotion - Started!")
+                if promotionThread then task.cancel(promotionThread) promotionThread = nil end
+                promotionThread = task.spawn(aas_autoPromotionLoop)
+                Window:Notify({ Title = "Euclidean", Content = "Auto Promotion - Started!", Duration = 3, Type = "Info" })
             else
-                if S.promotionThread then task.cancel(S.promotionThread) S.promotionThread = nil end
-                aas_promoStopBackgroundThreads() S.promotionSuppressedByPriority = false
+                if promotionThread then task.cancel(promotionThread) promotionThread = nil end
+                aas_promoStopBackgroundThreads() promotionSuppressedByPriority = false
             end
-        end,
-    })
-    PromoControlGroup:AddButton({
-        Text = "Force Promote (If Ready)",
-        Func = function()
+        end })
+    PromoControlGroup:CreateButton({ Name = "Force Promote (If Ready)", Callback = function()
             pcall(function() aas_promotionPromoteRemote:Fire() end)
             task.wait(0.2) aas_requestPromotionState(2) aas_updatePromotionUi()
-        end,
-    })
+        end })
 
-    local PromoRefGroup = Tabs.Promotion:AddLeftGroupbox("Promotion Rank Reference", "book-open")
+    local PromoRefGroup = Tabs.Quests:AddLeftGroupbox({ Name = "Promotion Rank Reference", Icon = "book-open" })
     do
         local maxRank = aas_PromotionConfig:GetMaxRank()
         for rank = 0, maxRank do
             local key = "PromotionRef_"..rank
-            local obj = PromoRefGroup:AddLabel("• "..aas_promoBuildRankSummary(rank), true, key)
-            S.promotionRankRefLabelRefs[rank] = Options[key] or obj
+            local obj = PromoRefGroup:CreateLabel("• "..aas_promoBuildRankSummary(rank))
+            promotionRankRefLabelRefs[rank] = Options[key] or obj
         end
     end
 
@@ -5809,55 +5718,132 @@ do
     end)
 end
 
--- ══════════════════════════════════════════
---   PLAYER TAB (GRADIENT ENABLED)
--- ══════════════════════════════════════════
+local currentFOV = 70
+local defaultFOV = Camera and Camera.FieldOfView or 70
 
-do
-    local PlayerGroup = Tabs.Player:AddLeftGroupbox("Player", "user-check")
-    PlayerGroup:AddLabel(b(createMultiGradientText("USER", PALETTE.fire)), true)
-    PlayerGroup:AddPlayerInfo("PlayerCardCompact", {
-        ThumbnailType = "Bust",
-        Height = 190,
-    })
-
-    local FlyGroup = Tabs.Player:AddRightGroupbox("Movement", "feather")
-    FlyGroup:AddLabel(b(createMultiGradientText("FLIGHT", PALETTE.prism)), true)
-    FlyGroup:AddDivider()
-    FlyGroup:AddToggle("Fly",      { Text = "Fly", Default = false })
-    FlyGroup:AddSlider("FlySpeed", { Text = "Fly Speed", Default = 60, Min = 10, Max = 350, Rounding = 0, Callback = function(v) currentFlySpeed = v end })
-    FlyGroup:AddDivider()
-    FlyGroup:AddToggle("AntiSit", {
-        Text = "Anti-Sit",
-        Default = false,
-        Callback = function(v)
-            local h = getHumanoid()
-            if h then h:SetStateEnabled(Enum.HumanoidStateType.Seated, not v) end
-        end,
-    })
-    FlyGroup:AddDivider()
-    FlyGroup:AddLabel(b(createMultiGradientText("MOBILITY", PALETTE.ocean)), true)
-    FlyGroup:AddDivider()
-    FlyGroup:AddToggle("WalkSpeedEnabled", { Text = "Speed", Default = false })
-    FlyGroup:AddSlider("WalkSpeed",        { Text = "Speed Value", Default = 16, Min = 16, Max = 250, Rounding = 0, Callback = function(v) currentWalkSpeed = v end })
-    FlyGroup:AddDivider()
-    FlyGroup:AddToggle("JumpPowerEnabled", { Text = "Jump", Default = false })
-    MoveGroup = FlyGroup
-    FlyGroup:AddSlider("JumpPower",        { Text = "Jump Value", Default = 50, Min = 50, Max = 300, Rounding = 0, Callback = function(v) currentJumpPower = v end })
-    FlyGroup:AddDivider()
-    FlyGroup:AddToggle("InfJump", { Text = "Infinite Jump", Default = false })
-    FlyGroup:AddToggle("NoClip",  { Text = "NoClip", Default = false })
+local freezeConn = nil
+local function setFreeze(enabled)
+    if freezeConn then freezeConn:Disconnect() freezeConn = nil end
+    local root = wpc_getRoot()
+    if not root then return end
+    if enabled then
+        local pos = root.CFrame
+        freezeConn = RunService.Heartbeat:Connect(function()
+            local r = wpc_getRoot()
+            if r then
+                r.AssemblyLinearVelocity = Vector3.zero
+                r.CFrame = pos
+            end
+        end)
+    end
 end
 
-Toggles.Fly:OnChanged(function(v)
-    if v then
-        sFLY(false)
-    else
-        FLYING = false
-        if flyKeyDown then flyKeyDown:Disconnect() flyKeyDown = nil end
-        if flyKeyUp then flyKeyUp:Disconnect() flyKeyUp = nil end
-        local h = getHumanoid()
-        if h then h.PlatformStand = false end
+local function stopFly()
+    FLYING = false
+    if flyKeyDown then flyKeyDown:Disconnect() flyKeyDown = nil end
+    if flyKeyUp then flyKeyUp:Disconnect() flyKeyUp = nil end
+    local h = getHumanoid()
+    if h then h.PlatformStand = false end
+end
+
+do
+    local MoveBox = PlayerTab:AddLeftGroupbox({ Name = "Movement", Icon = "footprints" })
+    MoveBox:CreateToggle({ Name = "Enable Walk Speed", Flag = "WalkSpeedEnabled", CurrentValue = false })
+    MoveBox:CreateSlider({
+        Name = "Walk Speed", Range = { 16, 250 }, Increment = 1, Suffix = " sps",
+        CurrentValue = 16, Flag = "WalkSpeed",
+        Callback = function(v) currentWalkSpeed = v end,
+    })
+    MoveBox:CreateToggle({ Name = "Enable Jump Power", Flag = "JumpPowerEnabled", CurrentValue = false })
+    MoveBox:CreateSlider({
+        Name = "Jump Power", Range = { 50, 300 }, Increment = 1, Suffix = "",
+        CurrentValue = 50, Flag = "JumpPower",
+        Callback = function(v) currentJumpPower = v end,
+    })
+    MoveBox:CreateToggle({ Name = "Infinite Jump", Flag = "InfJump", CurrentValue = false })
+    MoveBox:CreateToggle({ Name = "NoClip", Flag = "NoClip", CurrentValue = false })
+
+    local FlightBox = PlayerTab:AddLeftGroupbox({ Name = "Flight", Icon = "plane" })
+    FlightBox:CreateToggle({
+        Name = "Enable Fly", Flag = "Fly", CurrentValue = false,
+        Callback = function(v)
+            if v then sFLY(false) else stopFly() end
+        end,
+    })
+    FlightBox:CreateSlider({
+        Name = "Fly Speed", Range = { 10, 350 }, Increment = 1, Suffix = " sps",
+        CurrentValue = 60, Flag = "FlySpeed",
+        Callback = function(v) currentFlySpeed = v end,
+    })
+
+    local CharBox = PlayerTab:AddRightGroupbox({ Name = "Character", Icon = "user" })
+    CharBox:CreateToggle({
+        Name = "Freeze Character", Flag = "FreezeChar", CurrentValue = false,
+        Callback = function(v) setFreeze(v) end,
+    })
+    CharBox:CreateButton({
+        Name = "Reset Character",
+        Callback = function()
+            local h = getHumanoid()
+            if h then h.Health = 0 end
+        end,
+    })
+    CharBox:CreateSlider({
+        Name = "Camera FOV", Range = { 30, 120 }, Increment = 1, Suffix = "",
+        CurrentValue = 70, Flag = "CameraFOV",
+        Callback = function(v)
+            currentFOV = v
+            if Camera then Camera.FieldOfView = v end
+        end,
+    })
+    CharBox:CreateButton({
+        Name = "Reset FOV",
+        Callback = function()
+            if Camera then Camera.FieldOfView = defaultFOV end
+            local f = Ouro.Flags.CameraFOV
+            if f and type(f.Set) == "function" then pcall(function() f:Set(defaultFOV, true) end) end
+        end,
+    })
+
+    local PerfBox = PlayerTab:AddRightGroupbox({ Name = "Performance", Icon = "gauge" })
+    PerfBox:CreateToggle({
+        Name = "Disable 3D Rendering", Flag = "PotatoMode", CurrentValue = false,
+        Callback = function(v)
+            RunService:Set3dRenderingEnabled(not v)
+            setBlackout(v)
+        end,
+    })
+    PerfBox:CreateToggle({
+        Name = "Boost FPS", Flag = "FPSBoost", CurrentValue = false,
+        Callback = function(v) applyEuclideanFPSBoost(v) end,
+    })
+    PerfBox:CreateToggle({ Name = "Anti Gameplay Paused", Flag = "AntiGameplayPaused", CurrentValue = false, Callback = function(v) setNetworkPauseGuard(v) end })
+    PerfBox:CreateToggle({ Name = "Anti Robux Popup", Flag = "AntiRobuxPopup", CurrentValue = false, Callback = function(v) setRobuxPopupGuard(v) end })
+    PerfBox:CreateToggle({ Name = "Anti-AFK", Flag = "AntiAFK", CurrentValue = true })
+end
+
+-- Anti-AFK: VIM click + jump together every 5 minutes (only while idle)
+local antiAfkLastInput = tick()
+pcall(function()
+    for _, conn in ipairs(getconnections(LocalPlayer.Idled)) do conn:Disable() end
+end)
+
+UserInputService.InputBegan:Connect(function() antiAfkLastInput = tick() end)
+
+task.spawn(function()
+    while not unloaded do
+        task.wait(300)
+        if unloaded then break end
+        if isOn("AntiAFK") and (tick() - antiAfkLastInput) >= 280 then
+            pcall(function()
+                VIM:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+                VIM:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+            end)
+            pcall(function()
+                local h = getHumanoid()
+                if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end
+            end)
+        end
     end
 end)
 
@@ -5875,105 +5861,131 @@ Toggles.JumpPowerEnabled:OnChanged(function(v)
     end
 end)
 
--- ══════════════════════════════════════════
---   SETTINGS TAB (GRADIENT ENABLED)
+--   SETTINGS TAB
 -- ══════════════════════════════════════════
 
 do
-    local PerfGroup = Tabs.Settings:AddLeftGroupbox("Performance", "cpu")
-    PerfGroup:AddLabel(b(createMultiGradientText("OPTIMIZATION", PALETTE.aurora)), true)
-    PerfGroup:AddDivider()
-    PerfGroup:AddToggle("PotatoMode", {
-        Text = "Disable 3D Rendering",
-        Default = false,
-        Tooltip = "Cuts GPU/CPU usage to near zero while AFK farming",
-        Callback = function(v) RunService:Set3dRenderingEnabled(not v) end,
+    local MenuBox = SettingsTab:AddLeftGroupbox({ Name = "Menu", Icon = "menu" })
+    MenuBox:CreateKeybind({
+        Name = "Menu Key", CurrentKeybind = "G", Flag = "MenuKeybind",
+        Callback = function() pcall(function() Window:Toggle() end) end,
     })
-    PerfGroup:AddToggle("AntiAFK", {
-        Text = "Anti-AFK",
-        Default = true,
-        Tooltip = "Prevents Roblox disconnects after 20 minutes of inactivity"
+    MenuBox:CreateToggle({
+        Name = "Auto Execute on Rejoin", Flag = "AutoExecute", CurrentValue = false,
+        Callback = function(v)
+            if v then euclideanQueueAutoExec(AUTOEXEC_CODE) end
+        end,
     })
-
-    local MenuGroup = Tabs.Settings:AddRightGroupbox("Interface", "settings")
-
-    MenuGroup:AddLabel(b(createMultiGradientText("UI PREFERENCES", PALETTE.prism)), true)
-    MenuGroup:AddDivider()
-    MenuGroup:AddToggle("KeybindMenuOpen", {
-        Text     = "Show Keybind Menu",
-        Default  = false,
-        Callback = function(v) if Library.KeybindFrame then Library.KeybindFrame.Visible = v end end,
-    })
-    MenuGroup:AddDropdown("NotificationSide", {
-        Values   = { "Left", "Right" },
-        Default  = "Right",
-        Text     = "Notification Placement",
-        Callback = function(v) pcall(function() Library:SetNotifySide(v) end) end,
-    })
-    MenuGroup:AddDivider()
-    MenuGroup:AddLabel("Menu Keybind"):AddKeyPicker("MenuKeybind", { Default = "G", NoUI = true, Text = "Menu keybind" })
-    Library.ToggleKeybind = Options.MenuKeybind
-    MenuGroup:AddButton("Unload Prism", function() Library:Unload() end)
-end
-
--- ══════════════════════════════════════════
---   FINALIZE INITIALIZATION
--- ══════════════════════════════════════════
-
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
-SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
-ThemeManager:SetFolder("PrismHub")
-SaveManager:SetFolder("PrismHub/AnimeAstralSimulator")
-
-SaveManager:BuildConfigSection(Tabs.Settings)
-ThemeManager:ApplyToTab(Tabs.Settings)
-
-ThemeManager:SaveDefault("Claude")
-ThemeManager:LoadDefault()
-
-SaveManager:LoadAutoloadConfig()
-
-Window:SetGlow(true, {
-    Color = Color3.fromRGB(217, 119, 87),
-    Radius = 30,
-    Transparency = 0.1
-})
-
-Library:OnUnload(function()
-    pcall(aas_cleanup)
-    pcall(function() if steppedConnection then steppedConnection:Disconnect() end end)
-    pcall(function() if jumpConnection then jumpConnection:Disconnect() end end)
-    pcall(function() if renderConnection then renderConnection:Disconnect() end end)
-    pcall(function() if infJumpConnection then infJumpConnection:Disconnect() end end)
-    pcall(function() if charAddedConn then charAddedConn:Disconnect() end end)
-
-    FLYING = false
-    pcall(function() if flyKeyDown then flyKeyDown:Disconnect() end end)
-    pcall(function() if flyKeyUp then flyKeyUp:Disconnect() end end)
-
-    pcall(function() RunService:Set3dRenderingEnabled(true) end)
-    pcall(function()
-        local h = getHumanoid()
-        if h then
-            h.PlatformStand = false
-            h.WalkSpeed     = 16
-            h.JumpPower     = 50
+    LocalPlayer.OnTeleport:Connect(function()
+        if isOn("AutoExecute") then
+            euclideanQueueAutoExec(AUTOEXEC_CODE)
         end
     end)
-end)
+    MenuBox:CreateButton({ Name = "Rejoin Server", Callback = safeRejoin })
+    MenuBox:CreateButton({
+        Name = "Unload Script",
+        Callback = function()
+            Ouro:Confirm({
+                Title = "Unload?",
+                Content = "The window closes and everything is restored.",
+                ConfirmText = "Unload",
+                CancelText = "Keep",
+                Callback = function() pcall(function() Window:Destroy() end) end,
+            })
+        end,
+    })
 
-task.spawn(function()
-    task.wait(3)
-    pcall(aas_syncAllPlayerData)
-    pcall(function() aas_requestPromotionState(2) aas_updatePromotionUi() end)
-end)
+    local NameBox = SettingsTab:AddRightGroupbox({ Name = "Name Changer", Icon = "user" })
+    NameBox:CreateToggle({
+        Name = "Enable Name Changer", Flag = "EnableNameSpoof", CurrentValue = false,
+        Callback = function(v)
+            euclideanSpoofOn = v
+            applyEuclideanNameSpoof()
+        end,
+    })
+    NameBox:CreateInput({
+        Name = "Target Fake Name", PlaceholderText = "Enter alias...",
+        CurrentValue = "EuclideanUser", Flag = "SpoofedName",
+        Callback = function(t)
+            if type(t) == "string" and t ~= "" then
+                euclideanSpoofName = t
+                if euclideanSpoofOn then applyEuclideanNameSpoof() end
+            end
+        end,
+    })
 
-task.defer(function()
-    task.wait(2.5)
-    Library:Notify(
-        "Prism Adaptor Successful! Welcome, " .. LocalPlayer.Name ..
-        " | " .. executorName .. " detected."
-    )
-end)
+    SettingsTab:CreateConfigManager({ Name = "Configs", Side = "Left" })
+    SettingsTab:CreateThemeManager({ Name = "Themes", Side = "Right" })
+end
+
+--   FINALIZE (configs, themes, autoload)
+-- ══════════════════════════════════════════
+
+Window:LoadAutoload()
+
+-- ══════════════════════════════════════════
+--   UNLOAD + TEST SHIMS
+-- ══════════════════════════════════════════
+
+local function unloadEuclidean()
+    if unloaded then return end
+    unloaded = true
+    pcall(applyEuclideanFPSBoost, false)
+    pcall(restoreEuclideanNames)
+    pcall(aas_cleanup)
+    pcall(function() steppedConnection:Disconnect() end)
+    pcall(function() jumpConnection:Disconnect() end)
+    pcall(function() renderConnection:Disconnect() end)
+    if charAddedConn then pcall(function() charAddedConn:Disconnect() end) end
+    if freezeConn then pcall(function() freezeConn:Disconnect() end) freezeConn = nil end
+    pcall(function() if networkPauseConn then networkPauseConn:Disconnect() end networkPauseConn = nil end)
+    pcall(function() if foundationOverlayConn then foundationOverlayConn:Disconnect() end foundationOverlayConn = nil end)
+    stopFly()
+    RunService:Set3dRenderingEnabled(true)
+    setBlackout(false)
+    if blackoutGui then blackoutGui:Destroy() blackoutGui = nil end
+    if Camera then Camera.FieldOfView = defaultFOV end
+    local h = getHumanoid()
+    if h then
+        h.PlatformStand = false
+        h.WalkSpeed     = 16
+        h.JumpPower     = 50
+    end
+    pcall(function() Window:Destroy() end)
+end
+
+-- Functional-test + debug shims (same contract as the Obsidian copy)
+do
+    local TestToggles = {}
+    local TestOptions = {}
+    setmetatable(TestToggles, { __index = function(_, k)
+        local f = Ouro.Flags[k]
+        if type(f) ~= "table" then return nil end
+        return {
+            Value = f.Value,
+            SetValue = function(_, v)
+                if type(f.Set) == "function" then pcall(function() f:Set(v) end) end
+            end,
+            GetValue = function()
+                if type(f.Get) == "function" then
+                    local ok, v = pcall(function() return f:Get() end)
+                    if ok then return v end
+                end
+                return f.Value
+            end,
+        }
+    end })
+    _G.EuclideanLibrary = { Toggles = TestToggles, Options = TestOptions }
+
+    _G.EuclideanDbg = function()
+        return {
+            phase = "ouro-test",
+            unloaded = unloaded,
+            farm = farmEnabled,
+            raid = activeRaidKey,
+            defense = activeDefenseKey,
+        }
+    end
+end
+
+notify("Euclidean loaded, welcome " .. LocalPlayer.Name, 5)
