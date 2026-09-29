@@ -87,12 +87,9 @@ local samegroup = {
 local gameFile = samegroup[game.PlaceId] or poops[game.CreatorId]
 if not gameFile then return end
 
-local icon = "rbxassetid://118719079382998"
-
 local function runScript()
     local url = "https://raw.githubusercontent.com/hersheyzchoco-cmyk/ggs/refs/heads/main/games/" .. gameFile
     local content = game:HttpGet(url)
-    content = content:gsub("rbxassetid://117487160988921", icon)
     loadstring(content)()
 end
 
